@@ -3,17 +3,15 @@
 # save model in result_dir/model/$index, save log in result_dir/log/$index, save plot in result_dir/plot
 # train.py temp_dir result_dir params
 import os
-import math
 import sys
 import shutil
 
-from keras.models import Sequential, save_model, load_model
+from keras.models import Sequential, save_model
 from keras.layers import Dense, LeakyReLU
 from keras.optimizers import adam_v2
 import keras.callbacks
 
 import pandas as pd
-import matplotlib.pyplot as plt
 
 
 def main(temp_dir, result_dir, params='params.txt'):
@@ -36,6 +34,7 @@ def main(temp_dir, result_dir, params='params.txt'):
     os.mkdir('result')
     os.mkdir('result/model')
     os.mkdir('result/plot')
+    os.mkdir('result/data')
 
     #
     # Read Hyperparams
@@ -43,10 +42,10 @@ def main(temp_dir, result_dir, params='params.txt'):
     para = []
     if not os.path.exists(params):
         params_f = open(params, 'w')
-        params_f.write("FOLD = 8")
-        params_f.write("LEARNING_RATE = 0.005")
-        params_f.write("EPOCH = 4")
-        params_f.write("BATCH = 2048")
+        params_f.write("FOLD=8")
+        params_f.write("EPOCH=256")
+        params_f.write("LEARNING_RATE=0.005")
+        params_f.write("BATCH=64")
         params_f.close()
 
     for i, line in enumerate(open(params, 'r')):
@@ -81,8 +80,10 @@ def main(temp_dir, result_dir, params='params.txt'):
     dataset = pd.read_csv(os.path.join(temp_dir, 'temp.csv'))
     dataset = dataset.sample(frac=1).reset_index()  # Load and Shuffle
 
-    test_set = dataset.sample(frac=0.01).reset_index()
+    test_set = dataset.sample(frac=0.2).reset_index()
+    test_set.to_csv(os.path.join(result_dir, 'data', 'test.csv'))
     train_set = dataset.sample(frac=0.8).reset_index()
+    test_set.to_csv(os.path.join(result_dir, 'data', 'train.csv'))
 
     size = len(train_set)
     size_per_fold = int(size/FOLD)-1
@@ -127,52 +128,7 @@ def main(temp_dir, result_dir, params='params.txt'):
         val_loss = model.evaluate(val_ds_x, val_ds_y)
         val_losses.append(val_loss)
 
-    #
-    # Estimate, Plot Model
-    #
-
-    test_y = test_set.LW_OUT
-    test_x = test_set.drop(['LW_OUT', 'index', 'TIMESTAMP', 'SITE'], axis=1)
-
-    # Loss in a Bar
-
-    test_losses = []
-    for i in range(FOLD):
-        Model = load_model(os.path.join(result_dir, 'model', str(i)))
-        eval_result = Model.evaluate(test_x, test_y)
-        test_losses.append(math.sqrt(eval_result))
-
-    plt.bar(list(range(FOLD)), test_losses)
-    plt.xticks(list(range(FOLD)), list(range(1, FOLD+1)))
-
-    plt.savefig(os.path.join(result_dir, 'plot', 'loss_per_model.png'))
-
-    losses = open(os.path.join(result_dir, 'plot', 'loss.txt'), 'w')
-    losses.write(str(test_losses))
-    losses.close()
-
-    # CSV: Site, Predict, Real, 1 to 1 plot for a best model
-    best_model = test_losses.index(min(test_losses))
-
-    model = load_model(os.path.join(result_dir, 'model', str(best_model)))
-
-    ys_expect = []
-    test_x = test_x.values.tolist()[:100]
-    for i, x in enumerate(test_x):
-        y_expect = model.predict([x]).tolist()[0][0]
-        ys_expect.append(y_expect)
-    ys_expect = pd.Series(ys_expect)
-
-    result_df = pd.concat([test_set.SITE, test_set.TIMESTAMP, ys_expect, test_y], axis=1)
-    result_df.columns = ['SITE', 'TIME', 'EXPECT', 'REAL']
-    result_df['LOSS'] = result_df['REAL']-result_df['EXPECT']
-
-    plt.plot(test_x, ys_expect, 'b')
-    plt.plot(test_x, test_x)
-
-    plt.savefig(os.path.join(result_dir, 'plot', 'one_to_one.png'))
-
-    result_df.to_csv(os.path.join(result_dir, 'plot', 'result.csv'))
+    return True
 
 
 if __name__ == '__main__':
