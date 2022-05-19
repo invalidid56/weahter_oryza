@@ -68,7 +68,7 @@ def main(result_dir, params='params.txt'):
 
     plt.savefig(os.path.join(result_dir, 'plot', 'one_to_one.png'))
 
-    result_df.to_csv(os.path.join(result_dir, 'plot', 'result.csv'))
+    result_df.to_csv(os.path.join(result_dir, 'plot', 'result.csv'), index=False)
 
     return True
 

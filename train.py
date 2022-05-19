@@ -81,9 +81,9 @@ def main(temp_dir, result_dir, params='params.txt'):
     dataset = dataset.sample(frac=1).reset_index()  # Load and Shuffle
 
     test_set = dataset.sample(frac=0.2).reset_index()
-    test_set.to_csv(os.path.join(result_dir, 'data', 'test.csv'))
+    test_set.to_csv(os.path.join(result_dir, 'data', 'test.csv'), index=False)
     train_set = dataset.sample(frac=0.8).reset_index()
-    test_set.to_csv(os.path.join(result_dir, 'data', 'train.csv'))
+    test_set.to_csv(os.path.join(result_dir, 'data', 'train.csv'), index=False)
 
     size = len(train_set)
     size_per_fold = int(size/FOLD)-1
