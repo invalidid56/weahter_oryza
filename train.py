@@ -78,11 +78,11 @@ def main(temp_dir, result_dir, params='params.txt'):
     #
 
     dataset = pd.read_csv(os.path.join(temp_dir, 'temp.csv'))
-    dataset = dataset.sample(frac=1).reset_index()  # Load and Shuffle
+    dataset = dataset.sample(frac=1).reset_index(drop=True)  # Load and Shuffle
 
-    test_set = dataset.sample(frac=0.2).reset_index()
+    test_set = dataset.sample(frac=0.2).reset_index(drop=True)
     test_set.to_csv(os.path.join(result_dir, 'data', 'test.csv'), index=False)
-    train_set = dataset.sample(frac=0.8).reset_index()
+    train_set = dataset.sample(frac=0.8).reset_index(drop=True)
     test_set.to_csv(os.path.join(result_dir, 'data', 'train.csv'), index=False)
 
     size = len(train_set)
@@ -104,11 +104,11 @@ def main(temp_dir, result_dir, params='params.txt'):
 
         train_sets = pd.concat([datasets[i] for i in range(FOLD) if not i == k], axis=0)
         train_ds_y = train_sets.LW_OUT
-        train_ds_x = train_sets.drop(['LW_OUT', 'index', 'TIMESTAMP', 'SITE'], axis=1)
+        train_ds_x = train_sets.drop(['LW_OUT', 'TIMESTAMP', 'SITE'], axis=1)
 
         val_sets = dataset
         val_ds_y = val_sets.LW_OUT
-        val_ds_x = val_sets.drop(['LW_OUT', 'index', 'TIMESTAMP', 'SITE'], axis=1)
+        val_ds_x = val_sets.drop(['LW_OUT', 'TIMESTAMP', 'SITE'], axis=1)
 
         CB = keras.callbacks.TensorBoard(log_dir=os.path.join(result_dir, 'logs', str(k)))
         history = model.fit(train_ds_x, train_ds_y, epochs=EPOCH, batch_size=BATCH,
