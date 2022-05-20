@@ -1,6 +1,7 @@
 # invalidid56@snu.ac.kr 작물생태정보연구실 강준서
 # define method to handle environment data, call main and return result file in new_dir/temp.csv
 # datagen.py origin_dir new_dir
+import math
 import shutil
 
 import pandas as pd
@@ -15,10 +16,14 @@ def preprocess(dataset):
     ds['RH'] = (dataset.RH-20)/80
     ds['VPD'] = dataset.VPD/30
     ds['WS'] = dataset.WS/8
-    ds['LW_OUT'] = dataset.LW_OUT
+    ds['DIFF_TL'] = dataset.DIFF_TL
     ds['SITE'] = dataset.SITE
     ds['TIMESTAMP'] = dataset.TIMESTAMP
     return ds
+
+
+def leaf_temperature(TA, LW_OUT):
+    return abs(TA-math.sqrt(math.sqrt(LW_OUT/(0.98*5.67)*10**8))) - 273.15
 
 
 def main(origin_dir, new_dir):
@@ -55,6 +60,10 @@ def main(origin_dir, new_dir):
         df = df.reset_index()
 
         df['SITE'] = pd.Series([site for _ in range(len(df))])
+
+        df['DAYTIME'] = df['SW_IN'].map(lambda x: x > 1)
+        df['LW_OUT'] = df.apply(lambda x: leaf_temperature(x['TA'], x['LW_OUT']), axis=1)
+        df.rename(columns={'LW_OUT': 'DIFF_TL'}, inplace=True)
 
         result.append(df)
 

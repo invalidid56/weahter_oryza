@@ -27,8 +27,8 @@ def main(result_dir, params='params.txt'):
 
     test_set = pd.read_csv(os.path.join(result_dir, 'data', 'test.csv'))
 
-    test_y = test_set.LW_OUT
-    test_x = test_set.drop(['LW_OUT', 'TIMESTAMP', 'SITE'], axis=1)
+    test_y = test_set.DIFF_TL
+    test_x = test_set.drop(['DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
 
     # Loss in a Bar
 

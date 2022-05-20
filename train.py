@@ -103,12 +103,12 @@ def main(temp_dir, result_dir, params='params.txt'):
         model = build_model()
 
         train_sets = pd.concat([datasets[i] for i in range(FOLD) if not i == k], axis=0)
-        train_ds_y = train_sets.LW_OUT
-        train_ds_x = train_sets.drop(['LW_OUT', 'TIMESTAMP', 'SITE'], axis=1)
+        train_ds_y = train_sets.DIFF_TL
+        train_ds_x = train_sets.drop(['DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
 
         val_sets = dataset
-        val_ds_y = val_sets.LW_OUT
-        val_ds_x = val_sets.drop(['LW_OUT', 'TIMESTAMP', 'SITE'], axis=1)
+        val_ds_y = val_sets.DIFF_TL
+        val_ds_x = val_sets.drop(['DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
 
         CB = keras.callbacks.TensorBoard(log_dir=os.path.join(result_dir, 'logs', str(k)))
         history = model.fit(train_ds_x, train_ds_y, epochs=EPOCH, batch_size=BATCH,
