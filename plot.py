@@ -28,7 +28,7 @@ def main(result_dir, params='params.txt'):
     test_set = pd.read_csv(os.path.join(result_dir, 'data', 'test.csv'))
 
     test_y = test_set.LW_OUT
-    test_x = test_set.drop(['LW_OUT', 'index', 'TIMESTAMP', 'SITE'], axis=1)
+    test_x = test_set.drop(['LW_OUT', 'TIMESTAMP', 'SITE'], axis=1)
 
     # Loss in a Bar
 
@@ -42,6 +42,7 @@ def main(result_dir, params='params.txt'):
     plt.xticks(list(range(FOLD)), list(range(1, FOLD+1)))
 
     plt.savefig(os.path.join(result_dir, 'plot', 'loss_per_model.png'))
+    plt.show()
 
     losses = open(os.path.join(result_dir, 'plot', 'loss.txt'), 'w')
     losses.write(str(test_losses))
@@ -53,9 +54,9 @@ def main(result_dir, params='params.txt'):
     model = load_model(os.path.join(result_dir, 'model', str(best_model)))
 
     ys_expect = []
-    test_x = test_x.values.tolist()[:100]
+    test_x = test_x.values.tolist()
     for i, x in enumerate(test_x):
-        y_expect = model.predict([x]).tolist()[0][0]
+        y_expect = model.predict([x]).tolist()[0][0]    # TODO: 배치 처리
         ys_expect.append(y_expect)
     ys_expect = pd.Series(ys_expect)
 
