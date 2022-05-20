@@ -55,10 +55,8 @@ def main(result_dir, params='params.txt'):
 
     ys_expect = []
     test_x = test_x.values.tolist()
-    for i, x in enumerate(test_x):
-        y_expect = model.predict([x]).tolist()[0][0]    # TODO: 배치 처리
-        ys_expect.append(y_expect)
-    ys_expect = pd.Series(ys_expect)
+    ys_expect = model.predict(test_x).tolist()
+    ys_expect = pd.Series([y[0] for y in ys_expect])
 
     result_df = pd.concat([test_set.SITE, test_set.TIMESTAMP, ys_expect, test_y], axis=1)
     result_df.columns = ['SITE', 'TIME', 'EXPECT', 'REAL']
