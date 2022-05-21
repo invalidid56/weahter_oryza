@@ -24,7 +24,7 @@ def preprocess(dataset):
 
 
 def leaf_temperature(TA, LW_OUT):
-    return abs(TA-(math.sqrt(math.sqrt(LW_OUT/(0.98*5.67)*10**8))-273.15))
+    return abs(TA-(math.sqrt(math.sqrt(LW_OUT/(0.98*5.67)*10**8))-273.15))*100
 
 
 def main(origin_dir, new_dir):
