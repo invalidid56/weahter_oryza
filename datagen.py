@@ -19,6 +19,7 @@ def preprocess(dataset):
     ds['DIFF_TL'] = dataset.DIFF_TL
     ds['SITE'] = dataset.SITE
     ds['TIMESTAMP'] = dataset.TIMESTAMP
+    ds['DAYTIME'] = dataset.DAYTIME
     return ds
 
 
@@ -69,8 +70,17 @@ def main(origin_dir, new_dir):
 
     result = pd.concat(result, axis=0).drop('index', axis=1)
     result = preprocess(result)
-    result.to_csv(
-        os.path.join(new_dir, 'temp.csv'),
+
+    result_day = result[result['DAYTIME']].drop(['DAYTIME'], axis=1)
+    result_night = result[result['DAYTIME']!=True].drop(['DAYTIME'], axis=1)
+
+    result_day.to_csv(
+        os.path.join(new_dir, 'temp_DAY.csv'),
+        sep=',',
+        index=False
+    )
+    result_night.to_csv(
+        os.path.join(new_dir, 'temp_NIGHT.csv'),
         sep=',',
         index=False
     )

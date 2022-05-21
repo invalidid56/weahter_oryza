@@ -25,49 +25,55 @@ def main(result_dir, params='params.txt'):
 
     FOLD, EPOCH, LEARNING_RATE, BATCH = para
 
-    test_set = pd.read_csv(os.path.join(result_dir, 'data', 'test.csv'))
+    #
+    # For Each Style: Day and Night
+    #
+    data_styles = ['DAY', 'NIGHT']
+    for data_style in data_styles:
+        test_set = pd.read_csv(os.path.join(result_dir, data_style, 'data', 'test.csv'))
 
-    test_y = test_set.DIFF_TL
-    test_x = test_set.drop(['DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
+        test_y = test_set.DIFF_TL
+        test_x = test_set.drop(['DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
 
-    # Loss in a Bar
+        # Loss in a Bar
 
-    test_losses = []
-    for i in range(FOLD):
-        Model = load_model(os.path.join(result_dir, 'model', str(i)))
-        eval_result = Model.evaluate(test_x, test_y)
-        test_losses.append(math.sqrt(eval_result))
+        test_losses = []
+        for i in range(FOLD):
+            Model = load_model(os.path.join(result_dir, data_style, 'model', str(i)))
+            eval_result = Model.evaluate(test_x, test_y)
+            test_losses.append(math.sqrt(eval_result))
 
-    plt.bar(list(range(FOLD)), test_losses)
-    plt.xticks(list(range(FOLD)), list(range(1, FOLD+1)))
+        plt.bar(list(range(FOLD)), test_losses)
+        plt.xticks(list(range(FOLD)), list(range(1, FOLD+1)))
 
-    plt.savefig(os.path.join(result_dir, 'plot', 'loss_per_model.png'))
-    plt.show()
+        plt.savefig(os.path.join(result_dir, data_style, 'plot', 'loss_per_model.png'))
+        plt.clf()
 
-    losses = open(os.path.join(result_dir, 'plot', 'loss.txt'), 'w')
-    losses.write(str(test_losses))
-    losses.close()
+        # CSV: Site, Predict, Real, 1 to 1 plot for a best model
+        best_model = test_losses.index(min(test_losses))
 
-    # CSV: Site, Predict, Real, 1 to 1 plot for a best model
-    best_model = test_losses.index(min(test_losses))
+        model = load_model(os.path.join(result_dir, data_style, 'model', str(best_model)))
 
-    model = load_model(os.path.join(result_dir, 'model', str(best_model)))
+        test_x = test_x.values.tolist()
+        ys_expect = model.predict(test_x).tolist()
+        ys_expect = pd.Series([y[0] for y in ys_expect])
 
-    ys_expect = []
-    test_x = test_x.values.tolist()
-    ys_expect = model.predict(test_x).tolist()
-    ys_expect = pd.Series([y[0] for y in ys_expect])
+        result_df = pd.concat([test_set.SITE, test_set.TIMESTAMP, ys_expect, test_y], axis=1)
+        result_df.columns = ['SITE', 'TIME', 'EXPECT', 'REAL']
+        result_df['LOSS'] = result_df['REAL']-result_df['EXPECT']
 
-    result_df = pd.concat([test_set.SITE, test_set.TIMESTAMP, ys_expect, test_y], axis=1)
-    result_df.columns = ['SITE', 'TIME', 'EXPECT', 'REAL']
-    result_df['LOSS'] = result_df['REAL']-result_df['EXPECT']
+        plt.plot(test_y, ys_expect, 'bo')
+        plt.plot(test_y, test_y, 'r')
 
-    plt.plot(test_x, ys_expect, 'b')
-    plt.plot(test_x, test_x)
+        plt.savefig(os.path.join(result_dir, data_style, 'plot', 'one_to_one.png'))
+        plt.clf()
 
-    plt.savefig(os.path.join(result_dir, 'plot', 'one_to_one.png'))
+        result_df.to_csv(os.path.join(result_dir, data_style, 'plot', 'result.csv'), index=False)
 
-    result_df.to_csv(os.path.join(result_dir, 'plot', 'result.csv'), index=False)
+        # Print Estimate Report as a File
+        with open(os.path.join('result', data_style, 'estimate_report.txt'), 'w') as report:
+            for i, tl in enumerate(test_losses):
+                report.write('Test Loss For Model No. {0} in {1} Style: {2}\n'.format(i, data_style, tl))
 
     return True
 
