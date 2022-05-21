@@ -9,7 +9,6 @@ import shutil
 from keras.models import Sequential, save_model
 from keras.layers import Dense, LeakyReLU
 from keras.optimizers import adam_v2
-from sklearn.metrics import r2_score
 import keras.callbacks
 import time
 
@@ -71,11 +70,13 @@ def main(temp_dir, result_dir, params='params.txt'):
     def build_model():
         M = Sequential([
             Dense(5),
-            LeakyReLU(),
+            LeakyReLU(alpha=0.2),
             Dense(12),
-            LeakyReLU(),
+            LeakyReLU(alpha=0.2),
+            Dense(16),
+            LeakyReLU(alpha=0.2),
             Dense(8),
-            LeakyReLU(),
+            LeakyReLU(alpha=0.2),
             Dense(1)
         ])
         M.compile(optimizer=adam_v2.Adam(learning_rate=LEARNING_RATE), loss='mse')
@@ -143,7 +144,7 @@ def main(temp_dir, result_dir, params='params.txt'):
             END = time.time()
             with open(os.path.join('result', data_style, 'train_report.txt'), 'w') as report:
                 report.write('Time Spent on Training Models : {0}\n'.format(END - START))
-                for i, vl in enumerate(val_loss):
+                for i, vl in enumerate(val_losses):
                     report.write('Val Loss For Model No. {0} in {1} Style: {2}\n'.format(i, data_style, vl))
     shutil.rmtree(temp_dir)
     return True

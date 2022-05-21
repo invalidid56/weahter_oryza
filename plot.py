@@ -4,10 +4,9 @@
 # train.py temp_dir result_dir params
 import os.path
 import sys
-
 from keras.models import load_model
 import math
-
+from sklearn.metrics import r2_score
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -73,7 +72,10 @@ def main(result_dir, params='params.txt'):
         # Print Estimate Report as a File
         with open(os.path.join('result', data_style, 'estimate_report.txt'), 'w') as report:
             for i, tl in enumerate(test_losses):
-                report.write('Test Loss For Model No. {0} in {1} Style: {2}\n'.format(i, data_style, tl))
+                r2 = r2_score(test_y, ys_expect)
+                report.write(
+                    'Model No. {0} in {1} Style-\n Test Loss: {2}\nR2 Score: {3}\n'.format(i, data_style, tl, r2)
+                )
 
     return True
 
