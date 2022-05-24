@@ -75,6 +75,10 @@ def main(temp_dir, result_dir, params='params.txt'):
             LeakyReLU(alpha=0.2),
             Dense(16),
             LeakyReLU(alpha=0.2),
+            Dense(24),
+            LeakyReLU(alpha=0.2),
+            Dense(12),
+            LeakyReLU(alpha=0.2),
             Dense(8),
             LeakyReLU(alpha=0.2),
             Dense(1)
