@@ -16,7 +16,7 @@ def preprocess(dataset):
     ds['RH'] = (dataset.RH-20)/80
     ds['VPD'] = dataset.VPD/30
     ds['WS'] = dataset.WS/8
-    ds['DIFF_TL'] = dataset.DIFF_TL * 100
+    ds['DIFF_TL'] = dataset.DIFF_TL
     ds['SITE'] = dataset.SITE
     ds['TIMESTAMP'] = dataset.TIMESTAMP
     ds['DAYTIME'] = dataset.DAYTIME

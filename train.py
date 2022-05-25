@@ -7,7 +7,7 @@ import sys
 import shutil
 
 from keras.models import Sequential, save_model
-from keras.layers import Dense, LeakyReLU
+from keras.layers import Dense, LeakyReLU, Dropout
 from keras.optimizers import adam_v2
 import keras.callbacks
 import time
@@ -69,21 +69,19 @@ def main(temp_dir, result_dir, params='params.txt'):
 
     def build_model():
         M = Sequential([
-            Dense(5),
+            Dense(48),
             LeakyReLU(alpha=0.2),
-            Dense(12),
-            LeakyReLU(alpha=0.2),
-            Dense(16),
-            LeakyReLU(alpha=0.2),
+            Dropout(0.2),
             Dense(24),
             LeakyReLU(alpha=0.2),
             Dense(12),
             LeakyReLU(alpha=0.2),
-            Dense(8),
+            Dropout(0.2),
+            Dense(4),
             LeakyReLU(alpha=0.2),
             Dense(1)
         ])
-        M.compile(optimizer=adam_v2.Adam(learning_rate=LEARNING_RATE), loss='mse')
+        M.compile(optimizer=adam_v2.Adam(learning_rate=LEARNING_RATE), loss='mse', metrics=['mae'])
         return M
 
     #
@@ -128,8 +126,14 @@ def main(temp_dir, result_dir, params='params.txt'):
             val_ds_x = val_sets.drop(['DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
 
             CB = keras.callbacks.TensorBoard(log_dir=os.path.join(result_dir, data_style, 'logs', str(k)))
+            ES = keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
+            BEST_PATH = os.path.join(result_dir, data_style, 'model', str(k), 'best_model.h5')
+            MC = keras.callbacks.ModelCheckpoint(filepath=BEST_PATH,
+                                                 monitor='val_loss',
+                                                 save_best_only=True)
+
             history = model.fit(train_ds_x, train_ds_y, epochs=EPOCH, batch_size=BATCH,
-                                validation_data=(val_ds_x, val_ds_y), callbacks=CB)
+                                validation_data=(val_ds_x, val_ds_y), callbacks=[CB, ES, MC])
 
             export_path = os.path.join(result_dir, data_style, 'model', str(k))
             save_model(
