@@ -126,7 +126,7 @@ def main(temp_dir, result_dir, params='params.txt'):
             val_ds_x = val_sets.drop(['DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
 
             CB = keras.callbacks.TensorBoard(log_dir=os.path.join(result_dir, data_style, 'logs', str(k)))
-            ES = keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
+            ES = keras.callbacks.EarlyStopping(monitor='val_loss', patience=30)
             BEST_PATH = os.path.join(result_dir, data_style, 'model', str(k), 'best_model.h5')
             MC = keras.callbacks.ModelCheckpoint(filepath=BEST_PATH,
                                                  monitor='val_loss',
