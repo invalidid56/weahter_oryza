@@ -125,15 +125,14 @@ def main(temp_dir, result_dir, params='params.txt'):
             val_ds_y = val_sets.DIFF_TL
             val_ds_x = val_sets.drop(['DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
 
-            CB = keras.callbacks.TensorBoard(log_dir=os.path.join(result_dir, data_style, 'logs', str(k)))
-            ES = keras.callbacks.EarlyStopping(monitor='val_loss', patience=30)
+            CB = keras.callbacks.TensorBoard(log_dir=os.path.join(result_dir, data_style, 'logs', str(k))))
             BEST_PATH = os.path.join(result_dir, data_style, 'model', str(k), 'best_model.h5')
             MC = keras.callbacks.ModelCheckpoint(filepath=BEST_PATH,
                                                  monitor='val_loss',
                                                  save_best_only=True)
 
             history = model.fit(train_ds_x, train_ds_y, epochs=EPOCH, batch_size=BATCH,
-                                validation_data=(val_ds_x, val_ds_y), callbacks=[CB, ES, MC])
+                                validation_data=(val_ds_x, val_ds_y), callbacks=[CB, MC])
 
             export_path = os.path.join(result_dir, data_style, 'model', str(k))
             save_model(
