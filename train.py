@@ -69,12 +69,13 @@ def main(temp_dir, result_dir, params='params.txt'):
 
     def build_model():
         M = Sequential([
-            Dense(48),
+            Dense(32),
             LeakyReLU(alpha=0.2),
-            Dropout(0.2),
+            Dropout(0.5),
             Dense(24),
             LeakyReLU(alpha=0.2),
-            Dense(12),
+            Dropout(0.2),
+            Dense(16),
             LeakyReLU(alpha=0.2),
             Dropout(0.2),
             Dense(4),
@@ -126,7 +127,7 @@ def main(temp_dir, result_dir, params='params.txt'):
             val_ds_x = val_sets.drop(['DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
 
             CB = keras.callbacks.TensorBoard(log_dir=os.path.join(result_dir, data_style, 'logs', str(k)))
-            ES = keras.callbacks.EarlyStopping(monitor='val_loss', patience=30)
+            ES = keras.callbacks.EarlyStopping(monitor='val_loss', patience=15)
             BEST_PATH = os.path.join(result_dir, data_style, 'model', str(k), 'best_model.h5')
             MC = keras.callbacks.ModelCheckpoint(filepath=BEST_PATH,
                                                  monitor='val_loss',

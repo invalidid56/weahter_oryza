@@ -18,14 +18,21 @@ def preprocess(dataset):
 
     ds['SW_IN'] = dataset.SW_IN*(1/1000)
     ds['TA'] = min_max(dataset['TA'])
+    ds['TE'] = min_max(dataset['TE'])
     ds['RA'] = min_max(dataset['RA'])
+    ds['GPP_DT'] = min_max(dataset['GPP_DT'])
+    ds['RECO_DT'] = min_max(dataset['RECO_DT'])
     ds['RH'] = (dataset.RH-20)/80
     ds['VPD'] = dataset.VPD/30
     ds['WS'] = dataset.WS/8
+    ds['CLD'] = dataset.RA-dataset.SW_IN
+    ds['CLD'] = ds.CLD.map(abs)
+    ds['CLD'] = min_max(ds['CLD'])
     ds['DIFF_TL'] = dataset.DIFF_TL
     ds['SITE'] = dataset.SITE
     ds['TIMESTAMP'] = dataset.TIMESTAMP
     ds['DAYTIME'] = dataset.DAYTIME
+    # Todo: 일괄 Min_max 적용으로..
     return ds
 
 
@@ -99,7 +106,8 @@ def main(origin_dir, new_dir):
     os.mkdir(new_dir)
 
     LABLE = 'LW_OUT'
-    INPUT = ['SW_IN', 'TA', 'RH', 'VPD', 'WS', 'TIMESTAMP'] + [LABLE]  # 단파복사, 기온, 상대습도, VPD, 강수, 풍속
+    INPUT = ['SW_IN', 'TA', 'RH', 'VPD', 'WS', 'TIMESTAMP',
+             'GPP_DT', 'RECO_DT'] + [LABLE]  # 단파복사, 기온, 상대습도, VPD, 강수, 풍속, 총광합성량, 호흡량
 
     result = []
 
@@ -126,7 +134,7 @@ def main(origin_dir, new_dir):
 
         df['DAYTIME'] = df['SW_IN'].map(lambda x: x > 1)
         df['LW_OUT'] = df.apply(lambda x: leaf_temperature(x['LW_OUT']), axis=1)
-        df['TA'] = df['TA'].map(lambda x: 5.67*10**(-8)*(x-273.15)**4)
+        df['TE'] = df['TA'].map(lambda x: 5.67*10**(-8)*(x-273.15)**4)
         df.rename(columns={'LW_OUT': 'DIFF_TL'}, inplace=True)
 
         result.append(df)

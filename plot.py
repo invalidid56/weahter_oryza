@@ -40,7 +40,7 @@ def main(result_dir, params='params.txt'):
         for i in range(FOLD):
             Model = load_model(os.path.join(result_dir, data_style, 'model', str(i)))
             eval_result = Model.evaluate(test_x, test_y)
-            test_losses.append(math.sqrt(eval_result))
+            test_losses.append(math.sqrt(eval_result[1]))   # MAE
 
         plt.bar(list(range(FOLD)), test_losses)
         plt.xticks(list(range(FOLD)), list(range(1, FOLD+1)))
