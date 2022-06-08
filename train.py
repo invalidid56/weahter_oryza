@@ -15,11 +15,12 @@ import time
 import pandas as pd
 
 
-def main(temp_dir, result_dir, params='params.txt'):
+def main(temp_dir, result_dir, target, params='params.txt'):
     """
     :param temp_dir:
     :param result_dir:
     :param params:
+    :param target:
     :return:
 
     * Cross-Validation and Estimate
@@ -33,15 +34,15 @@ def main(temp_dir, result_dir, params='params.txt'):
 
     data_styles = ['DAY', 'NIGHT']
 
-    if os.path.exists(result_dir):
-        shutil.rmtree(result_dir)
-    os.mkdir('result')
-    for data_style in data_styles:
-        os.mkdir(os.path.join('result', data_style))
-        os.mkdir(os.path.join('result', data_style, 'model'))
-        os.mkdir(os.path.join('result', data_style, 'logs'))
-        os.mkdir(os.path.join('result', data_style, 'plot'))
-        os.mkdir(os.path.join('result', data_style, 'data'))
+    if target == 'GPP':
+        for t in ('GPP', 'LEAF'):
+            os.mkdir(os.path.join('result', t))
+            for data_style in data_styles:
+                os.mkdir(os.path.join('result', t, data_style))
+                os.mkdir(os.path.join('result', t, data_style, 'model'))
+                os.mkdir(os.path.join('result', t, data_style, 'logs'))
+                os.mkdir(os.path.join('result', t, data_style, 'plot'))
+                os.mkdir(os.path.join('result', t, data_style, 'data'))
 
     #
     # Read Hyperparams
@@ -92,16 +93,17 @@ def main(temp_dir, result_dir, params='params.txt'):
     for data_style in data_styles:
         START = time.time()
         print("=====Training at {0} Data=====".format(data_style))
+
         #
         # Load Data
         #
-        dataset = pd.read_csv(os.path.join(temp_dir, 'temp_{0}.csv'.format(data_style)))
+        dataset = pd.read_csv(os.path.join(temp_dir, target, 'temp_{0}.csv'.format(data_style)))
         dataset = dataset.sample(frac=1).reset_index(drop=True)  # Load and Shuffle
 
         test_set = dataset.sample(frac=0.2).reset_index(drop=True)
-        test_set.to_csv(os.path.join(result_dir, data_style, 'data', 'test.csv'), index=False)
+        test_set.to_csv(os.path.join(result_dir, target, data_style, 'data', 'test.csv'), index=False)
         train_set = dataset.sample(frac=0.8).reset_index(drop=True)
-        test_set.to_csv(os.path.join(result_dir, data_style, 'data', 'train.csv'), index=False)
+        test_set.to_csv(os.path.join(result_dir, target, data_style, 'data', 'train.csv'), index=False)
 
         size = len(train_set)
         size_per_fold = int(size/FOLD)-1
@@ -112,23 +114,36 @@ def main(temp_dir, result_dir, params='params.txt'):
         #
         # Fit Model, Save Model
         #
-
         val_losses = []
 
         for k, dataset in enumerate(datasets):
             model = build_model()
 
-            train_sets = pd.concat([datasets[i] for i in range(FOLD) if not i == k], axis=0)
-            train_ds_y = train_sets.DIFF_TL
-            train_ds_x = train_sets.drop(['DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
+            if target == 'LEAF':
+                train_sets = pd.concat([datasets[i] for i in range(FOLD) if not i == k], axis=0)
+                train_ds_y = train_sets.DIFF_TL
+                train_ds_x = train_sets.drop(['DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
 
-            val_sets = dataset
-            val_ds_y = val_sets.DIFF_TL
-            val_ds_x = val_sets.drop(['DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
+                val_sets = dataset
+                val_ds_y = val_sets.DIFF_TL
+                val_ds_x = val_sets.drop(['DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
 
-            CB = keras.callbacks.TensorBoard(log_dir=os.path.join(result_dir, data_style, 'logs', str(k)))
+            elif target == 'GPP':
+                train_sets = pd.concat([datasets[i] for i in range(FOLD) if not i == k], axis=0)
+                train_ds_y = train_sets.GPP_DT
+                train_ds_x = train_sets.drop(['GPP_DT', 'DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
+
+                val_sets = dataset
+                val_ds_y = val_sets.GPP_DT
+                val_ds_x = val_sets.drop(['GPP_DT', 'DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
+
+            else:
+                print('TARGET VARIABLE ERROR')
+                exit()
+
+            CB = keras.callbacks.TensorBoard(log_dir=os.path.join(result_dir, target, data_style, 'logs', str(k)))
             ES = keras.callbacks.EarlyStopping(monitor='val_loss', patience=15)
-            BEST_PATH = os.path.join(result_dir, data_style, 'model', str(k), 'best_model.h5')
+            BEST_PATH = os.path.join(result_dir, target, data_style, 'model', str(k), 'best_model.h5')
             MC = keras.callbacks.ModelCheckpoint(filepath=BEST_PATH,
                                                  monitor='val_loss',
                                                  save_best_only=True)
@@ -136,7 +151,7 @@ def main(temp_dir, result_dir, params='params.txt'):
             history = model.fit(train_ds_x, train_ds_y, epochs=EPOCH, batch_size=BATCH,
                                 validation_data=(val_ds_x, val_ds_y), callbacks=[CB, ES, MC])
 
-            export_path = os.path.join(result_dir, data_style, 'model', str(k))
+            export_path = os.path.join(result_dir, target, data_style, 'model', str(k))
             save_model(
                 model,
                 export_path,
@@ -151,14 +166,18 @@ def main(temp_dir, result_dir, params='params.txt'):
             val_losses.append(val_loss)
 
             END = time.time()
-            with open(os.path.join('result', data_style, 'train_report.txt'), 'w') as report:
+            with open(os.path.join(result_dir, target, data_style, 'train_report.txt'), 'w') as report:
                 report.write('Time Spent on Training Models : {0}\n'.format(END - START))
                 for i, vl in enumerate(val_losses):
                     report.write('Val Loss For Model No. {0} in {1} Style: {2}\n'.format(i, data_style, vl))
-    shutil.rmtree(temp_dir)
+
+    if target == 'LEAF':
+        shutil.rmtree(temp_dir)
+
     return True
 
 
 if __name__ == '__main__':
     main(sys.argv[1],
-         sys.argv[2])
+         sys.argv[2],
+         sys.argv[3])

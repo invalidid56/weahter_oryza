@@ -21,7 +21,7 @@ def preprocess(dataset):
     ds['TE'] = min_max(dataset['TE'])
     ds['RA'] = min_max(dataset['RA'])
     ds['GPP_DT'] = min_max(dataset['GPP_DT'])
-    ds['RECO_DT'] = min_max(dataset['RECO_DT'])
+    # ds['RECO_DT'] = min_max(dataset['RECO_DT'])
     ds['RH'] = (dataset.RH-20)/80
     ds['VPD'] = dataset.VPD/30
     ds['WS'] = dataset.WS/8
@@ -104,10 +104,11 @@ def main(origin_dir, new_dir):
     if os.path.exists(new_dir):
         shutil.rmtree(new_dir)
     os.mkdir(new_dir)
+    os.mkdir(os.path.join(new_dir, 'GPP'))
 
     LABLE = 'LW_OUT'
     INPUT = ['SW_IN', 'TA', 'RH', 'VPD', 'WS', 'TIMESTAMP',
-             'GPP_DT', 'RECO_DT'] + [LABLE]  # 단파복사, 기온, 상대습도, VPD, 강수, 풍속, 총광합성량, 호흡량
+             'GPP_DT'] + [LABLE]  # 단파복사, 기온, 상대습도, VPD, 강수, 풍속, 총광합성량, 호흡량
 
     result = []
 
@@ -137,6 +138,9 @@ def main(origin_dir, new_dir):
         df['TE'] = df['TA'].map(lambda x: 5.67*10**(-8)*(x-273.15)**4)
         df.rename(columns={'LW_OUT': 'DIFF_TL'}, inplace=True)
 
+        df['DIFF_TL'] = df['DIFF_TL'].map(lambda x: x if 0 <= x <= 40 else pd.NA)
+        df = df.dropna()
+
         result.append(df)
 
     result = pd.concat(result, axis=0).drop('index', axis=1)
@@ -149,12 +153,12 @@ def main(origin_dir, new_dir):
     result_night = result[result['DAYTIME']!=True].drop(['DAYTIME'], axis=1)
 
     result_day.to_csv(
-        os.path.join(new_dir, 'temp_DAY.csv'),
+        os.path.join(new_dir, 'GPP', 'temp_DAY.csv'),
         sep=',',
         index=False
     )
     result_night.to_csv(
-        os.path.join(new_dir, 'temp_NIGHT.csv'),
+        os.path.join(new_dir, 'GPP', 'temp_NIGHT.csv'),
         sep=',',
         index=False
     )
