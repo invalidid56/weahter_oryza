@@ -34,15 +34,18 @@ def main(temp_dir, result_dir, target, params='params.txt'):
 
     data_styles = ['DAY', 'NIGHT']
 
+    if not os.path.exists(result_dir):
+        os.mkdir(result_dir)
+
     if target == 'GPP':
         for t in ('GPP', 'LEAF'):
-            os.mkdir(os.path.join('result', t))
+            os.mkdir(os.path.join(result_dir, t))
             for data_style in data_styles:
-                os.mkdir(os.path.join('result', t, data_style))
-                os.mkdir(os.path.join('result', t, data_style, 'model'))
-                os.mkdir(os.path.join('result', t, data_style, 'logs'))
-                os.mkdir(os.path.join('result', t, data_style, 'plot'))
-                os.mkdir(os.path.join('result', t, data_style, 'data'))
+                os.mkdir(os.path.join(result_dir, t, data_style))
+                os.mkdir(os.path.join(result_dir, t, data_style, 'model'))
+                os.mkdir(os.path.join(result_dir, t, data_style, 'logs'))
+                os.mkdir(os.path.join(result_dir, t, data_style, 'plot'))
+                os.mkdir(os.path.join(result_dir, t, data_style, 'data'))
 
     #
     # Read Hyperparams
