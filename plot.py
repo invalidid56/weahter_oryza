@@ -36,6 +36,7 @@ def main(result_dir, temp_dir, target, params='params.txt'):
             test_y = test_set.RECO_DT
             test_x = test_set.drop(['RECO_DT', 'LEAF', 'GPP_DT',
                                     'TIMESTAMP', 'SITE'], axis=1)
+
         elif target == 'LEAF':
             test_y = test_set.LEAF
             test_x = test_set.drop(['LEAF', 'GPP_DT', 'TIMESTAMP', 'SITE'], axis=1)
@@ -48,11 +49,13 @@ def main(result_dir, temp_dir, target, params='params.txt'):
 
         test_losses = []
         r2_socres = []
+
         for i in range(FOLD):
             Model = load_model(os.path.join(result_dir, target, data_style, 'model', str(i)))
             eval_result = Model.evaluate(test_x, test_y)
-            test_x = test_x.values.tolist()
-            ys_expect = Model.predict(test_x).tolist()
+
+            x_values = test_x.values.tolist()
+            ys_expect = Model.predict(x_values).tolist()
             ys_expect = pd.Series([y[0] for y in ys_expect])
 
             r2_socres.append(r2_score(test_y, ys_expect))
@@ -102,7 +105,7 @@ def main(result_dir, temp_dir, target, params='params.txt'):
             for data_style in ('DAY', 'NIGHT'):
                 temp_data = pd.read_csv(os.path.join(temp_dir, target, 'temp_{0}.csv'.format(data_style)))
                 temp_data = temp_data.drop(['RECO_DT'], axis=1)
-                temp_x = temp_data.drop(['LEAF', 'RECO_DT', 'GPP_DT',
+                temp_x = temp_data.drop(['LEAF', 'GPP_DT',
                                          'SITE', 'TIMESTAMP'], axis=1).values.tolist()
                 ys_expect = model.predict(temp_x).tolist()
                 ys_expect = pd.Series([y[0] for y in ys_expect], name='RECO_DT')
@@ -117,7 +120,7 @@ def main(result_dir, temp_dir, target, params='params.txt'):
             for data_style in ('DAY', 'NIGHT'):
                 temp_data = pd.read_csv(os.path.join(temp_dir, target, 'temp_{0}.csv'.format(data_style)))
                 temp_data = temp_data.drop(['LEAF'], axis=1)
-                temp_x = temp_data.drop(['LEAF', 'GPP_DT', 'SITE', 'TIMESTAMP'], axis=1).values.tolist()
+                temp_x = temp_data.drop(['GPP_DT', 'SITE', 'TIMESTAMP'], axis=1).values.tolist()
                 ys_expect = model.predict(temp_x).tolist()
                 ys_expect = pd.Series([y[0] for y in ys_expect], name='LEAF')
 

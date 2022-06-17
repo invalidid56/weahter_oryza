@@ -71,24 +71,37 @@ def main(temp_dir, result_dir, target, params='params.txt'):
     # Define Method to Build Model
     #
 
-    def build_model():
-        M = Sequential([
-            Dense(32),
-            LeakyReLU(alpha=0.2),
-            Dropout(0.5),
-            Dense(24),
-            LeakyReLU(alpha=0.2),
-            Dropout(0.2),
-            Dense(16),
-            LeakyReLU(alpha=0.2),
-            Dropout(0.2),
-            Dense(4),
-            LeakyReLU(alpha=0.2),
-            Dense(1)
-        ])
+    def build_model(target):
+        if target == 'LEAF':
+            M = Sequential([
+                Dense(32),
+                LeakyReLU(alpha=0.2),
+                Dropout(0.5),
+                Dense(24),
+                LeakyReLU(alpha=0.2),
+                Dropout(0.2),
+                Dense(16),
+                LeakyReLU(alpha=0.2),
+                Dropout(0.2),
+                Dense(4),
+                LeakyReLU(alpha=0.2),
+                Dense(1)
+            ])
+
+        else:
+            M = Sequential([
+                Dense(16),
+                LeakyReLU(alpha=0.2),
+                Dropout(0.2),
+                Dense(8),
+                LeakyReLU(alpha=0.2),
+                Dropout(0.2),
+                Dense(4),
+                LeakyReLU(alpha=0.2),
+                Dense(1)
+            ])
         M.compile(optimizer=adam_v2.Adam(learning_rate=LEARNING_RATE), loss='mse', metrics=['mae'])
         return M
-
     #
     # For Each Styles: Day and Night
     #
@@ -133,7 +146,7 @@ def main(temp_dir, result_dir, target, params='params.txt'):
                 val_ds_x = val_sets.drop(['GPP_DT', 'LEAF', 'RECO_DT',
                                          'TIMESTAMP', 'SITE'], axis=1)
 
-            if target == 'LEAF':
+            elif target == 'LEAF':
                 train_sets = pd.concat([datasets[i] for i in range(FOLD) if not i == k], axis=0)
                 train_ds_y = train_sets.LEAF
                 train_ds_x = train_sets.drop(['LEAF', 'GPP_DT', 'TIMESTAMP', 'SITE'], axis=1)
