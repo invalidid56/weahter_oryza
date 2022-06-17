@@ -133,7 +133,7 @@ def main(temp_dir, result_dir, target, params='params.txt'):
         val_losses = []
 
         for k, dataset in enumerate(datasets):
-            model = build_model()
+            model = build_model(target)
 
             if target == 'RECO':
                 train_sets = pd.concat([datasets[i] for i in range(FOLD) if not i == k], axis=0)
