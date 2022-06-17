@@ -16,6 +16,14 @@ def preprocess(dataset):
     def min_max(series):
         return (series - series.min())/(series.max()-series.min())
 
+    def set_range(x, max_r, min_r):
+        if x>=max_r:
+            return max_r
+        elif x<=min_r:
+            return min_r
+        else:
+            return x
+
     def standardization(series):
         return (series - series.mean())/series.std()
 
@@ -23,8 +31,10 @@ def preprocess(dataset):
     ds['TA'] = min_max(dataset['TA'])
     ds['TE'] = min_max(dataset['TE'])
     ds['RA'] = min_max(dataset['RA'])
-    ds['GPP_DT'] = standardization(dataset['GPP_DT'])
-    ds['RECO_DT'] = standardization(dataset['RECO_DT'])
+    ds['GPP_DT'] = standardization(dataset['GPP_DT'].map(lambda x: set_range(x, 3, -1)))
+    ds['GPP_DT'] = min_max(ds['GPP_DT'])
+    ds['RECO_DT'] = standardization(dataset['RECO_DT'].map(lambda x: set_range(x, 3, -1)))
+    ds['RECO_DT'] = min_max(ds['RECO_DT'])
     ds['RH'] = (dataset.RH-20)/80
     ds['VPD'] = dataset.VPD/30
     ds['WS'] = dataset.WS/8
