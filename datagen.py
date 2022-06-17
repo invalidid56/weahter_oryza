@@ -17,9 +17,9 @@ def preprocess(dataset):
         return (series - series.min())/(series.max()-series.min())
 
     def set_range(x, max_r, min_r):
-        if x>=max_r:
+        if x >= max_r:
             return max_r
-        elif x<=min_r:
+        elif x <= min_r:
             return min_r
         else:
             return x
@@ -27,14 +27,50 @@ def preprocess(dataset):
     def standardization(series):
         return (series - series.mean())/series.std()
 
+    def day_per_year(timestamp):
+        ts = str(timestamp)
+        year = ts[:4]
+        month = ts[4:6]
+        day = ts[6:8]
+        ordinal = abs(date.fromisoformat('-'.join([year, month, day])) - date(int(year), 1, 1)).days
+        return ordinal / 365
+
+    def acc_ta(series):
+        cold_count = 0
+        result = []
+        temp = 0
+        stop_count = 0
+
+        for i, x in enumerate(series):
+            if x > 8.0:
+                cold_count = 0
+                temp += x
+            else:
+                cold_count += 1
+                if cold_count > 128 and not temp == 0:
+                    yearly_max = temp
+                    result[stop_count: i] = [r / yearly_max for r in result[stop_count: i]]
+                    temp = 0
+                    stop_count = i
+                else:
+                    temp += 0
+                    cold_count += 1
+            result.append(temp)
+
+        return pd.Series(result, name='ACC_TA')
+
+    ds['YEAR_SITE'] = dataset['TIMESTAMP'].map(str).str[:4] + '_' + dataset.SITE
+    ds['DAY_PER_YEAR'] = dataset.TIMESTAMP.map(day_per_year)
+
+    ds['ACC_TA'] = acc_ta(dataset['TA']).map(lambda x: set_range(x, 0.999, 0.001))
     ds['SW_IN'] = dataset.SW_IN*(1/1000)
     ds['TA'] = min_max(dataset['TA'])
     ds['TE'] = min_max(dataset['TE'])
     ds['RA'] = min_max(dataset['RA'])
     ds['GPP_DT'] = standardization(dataset['GPP_DT'].map(lambda x: set_range(x, 3, -1)))
-    ds['GPP_DT'] = min_max(ds['GPP_DT'])
+    ds['GPP_DT'] = min_max(ds['GPP_DT']).map(lambda x: set_range(x, 0.999, 0.001))
     ds['RECO_DT'] = standardization(dataset['RECO_DT'].map(lambda x: set_range(x, 3, -1)))
-    ds['RECO_DT'] = min_max(ds['RECO_DT'])
+    ds['RECO_DT'] = min_max(ds['RECO_DT']).map(lambda x: set_range(x, 0.999, 0.001))
     ds['RH'] = (dataset.RH-20)/80
     ds['VPD'] = dataset.VPD/30
     ds['WS'] = dataset.WS/8
@@ -44,8 +80,6 @@ def preprocess(dataset):
     ds['CLD'] = min_max(ds['CLD'])
 
     ds['LEAF'] = dataset.LEAF
-    ds['SITE'] = dataset.SITE
-    ds['TIMESTAMP'] = dataset.TIMESTAMP
     ds['DAYTIME'] = dataset.DAYTIME
     # Todo: 일괄 Min_max 적용으로..
     return ds

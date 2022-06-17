@@ -35,15 +35,15 @@ def main(result_dir, temp_dir, target, params='params.txt'):
         if target == 'RECO':
             test_y = test_set.RECO_DT
             test_x = test_set.drop(['RECO_DT', 'LEAF', 'GPP_DT',
-                                    'TIMESTAMP', 'SITE'], axis=1)
+                                    'YEAR_SITE'], axis=1)
 
         elif target == 'LEAF':
             test_y = test_set.LEAF
-            test_x = test_set.drop(['LEAF', 'GPP_DT', 'TIMESTAMP', 'SITE'], axis=1)
+            test_x = test_set.drop(['LEAF', 'GPP_DT', 'YEAR_SITE'], axis=1)
 
         elif target == 'GPP':
             test_y = test_set.GPP_DT
-            test_x = test_set.drop(['GPP_DT', 'TIMESTAMP', 'SITE'], axis=1)
+            test_x = test_set.drop(['GPP_DT', 'YEAR_SITE'], axis=1)
 
         # Loss in a Bar
 
@@ -76,8 +76,8 @@ def main(result_dir, temp_dir, target, params='params.txt'):
         ys_expect = model.predict(test_x).tolist()
         ys_expect = pd.Series([y[0] for y in ys_expect])
 
-        result_df = pd.concat([test_set.SITE, test_set.TIMESTAMP, ys_expect, test_y], axis=1)
-        result_df.columns = ['SITE', 'TIME', 'EXPECT', 'REAL']
+        result_df = pd.concat([test_set['YEAR_SITE'], ys_expect, test_y], axis=1)
+        result_df.columns = ['YEAR_SITE', 'EXPECT', 'REAL']
         result_df['LOSS'] = result_df['REAL']-result_df['EXPECT']
 
         plt.plot(test_y, ys_expect, 'bo')
@@ -106,7 +106,7 @@ def main(result_dir, temp_dir, target, params='params.txt'):
                 temp_data = pd.read_csv(os.path.join(temp_dir, target, 'temp_{0}.csv'.format(data_style)))
                 temp_data = temp_data.drop(['RECO_DT'], axis=1)
                 temp_x = temp_data.drop(['LEAF', 'GPP_DT',
-                                         'SITE', 'TIMESTAMP'], axis=1).values.tolist()
+                                         'YEAR_SITE'], axis=1).values.tolist()
                 ys_expect = model.predict(temp_x).tolist()
                 ys_expect = pd.Series([y[0] for y in ys_expect], name='RECO_DT')
 
@@ -120,7 +120,7 @@ def main(result_dir, temp_dir, target, params='params.txt'):
             for data_style in ('DAY', 'NIGHT'):
                 temp_data = pd.read_csv(os.path.join(temp_dir, target, 'temp_{0}.csv'.format(data_style)))
                 temp_data = temp_data.drop(['LEAF'], axis=1)
-                temp_x = temp_data.drop(['GPP_DT', 'SITE', 'TIMESTAMP'], axis=1).values.tolist()
+                temp_x = temp_data.drop(['GPP_DT', 'YEAR_SITE'], axis=1).values.tolist()
                 ys_expect = model.predict(temp_x).tolist()
                 ys_expect = pd.Series([y[0] for y in ys_expect], name='LEAF')
 
