@@ -37,8 +37,8 @@ def main(temp_dir, result_dir, target, params='params.txt'):
     if not os.path.exists(result_dir):
         os.mkdir(result_dir)
 
-    if target == 'GPP':
-        for t in ('GPP', 'LEAF'):
+    if target == 'RECO':
+        for t in ('RECO', 'GPP', 'LEAF'):
             os.mkdir(os.path.join(result_dir, t))
             for data_style in data_styles:
                 os.mkdir(os.path.join(result_dir, t, data_style))
@@ -122,23 +122,34 @@ def main(temp_dir, result_dir, target, params='params.txt'):
         for k, dataset in enumerate(datasets):
             model = build_model()
 
-            if target == 'LEAF':
+            if target == 'RECO':
                 train_sets = pd.concat([datasets[i] for i in range(FOLD) if not i == k], axis=0)
-                train_ds_y = train_sets.DIFF_TL
-                train_ds_x = train_sets.drop(['DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
+                train_ds_y = train_sets.RECO_DT
+                train_ds_x = train_sets.drop(['GPP_DT', 'LEAF', 'RECO_DT',
+                                              'TIMESTAMP', 'SITE'], axis=1)
 
                 val_sets = dataset
-                val_ds_y = val_sets.DIFF_TL
-                val_ds_x = val_sets.drop(['DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
+                val_ds_y = val_sets.RECO_DT
+                val_ds_x = val_sets.drop(['GPP_DT', 'LEAF', 'RECO_DT',
+                                         'TIMESTAMP', 'SITE'], axis=1)
+
+            if target == 'LEAF':
+                train_sets = pd.concat([datasets[i] for i in range(FOLD) if not i == k], axis=0)
+                train_ds_y = train_sets.LEAF
+                train_ds_x = train_sets.drop(['LEAF', 'GPP_DT', 'TIMESTAMP', 'SITE'], axis=1)
+
+                val_sets = dataset
+                val_ds_y = val_sets.LEAF
+                val_ds_x = val_sets.drop(['LEAF', 'GPP_DT', 'TIMESTAMP', 'SITE'], axis=1)
 
             elif target == 'GPP':
                 train_sets = pd.concat([datasets[i] for i in range(FOLD) if not i == k], axis=0)
                 train_ds_y = train_sets.GPP_DT
-                train_ds_x = train_sets.drop(['GPP_DT', 'DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
+                train_ds_x = train_sets.drop(['GPP_DT', 'TIMESTAMP', 'SITE'], axis=1)
 
                 val_sets = dataset
                 val_ds_y = val_sets.GPP_DT
-                val_ds_x = val_sets.drop(['GPP_DT', 'DIFF_TL', 'TIMESTAMP', 'SITE'], axis=1)
+                val_ds_x = val_sets.drop(['GPP_DT', 'TIMESTAMP', 'SITE'], axis=1)
 
             else:
                 print('TARGET VARIABLE ERROR')
@@ -174,7 +185,7 @@ def main(temp_dir, result_dir, target, params='params.txt'):
                 for i, vl in enumerate(val_losses):
                     report.write('Val Loss For Model No. {0} in {1} Style: {2}\n'.format(i, data_style, vl))
 
-    if target == 'LEAF':
+    if target == 'GPP_DT':
         shutil.rmtree(temp_dir)
 
     return True

@@ -7,7 +7,7 @@ import shutil
 import pandas as pd
 import os
 import sys
-from datetime import datetime, date
+from datetime import date
 
 
 def preprocess(dataset):
@@ -21,14 +21,16 @@ def preprocess(dataset):
     ds['TE'] = min_max(dataset['TE'])
     ds['RA'] = min_max(dataset['RA'])
     ds['GPP_DT'] = min_max(dataset['GPP_DT'])
-    # ds['RECO_DT'] = min_max(dataset['RECO_DT'])
+    ds['RECO_DT'] = min_max(dataset['RECO_DT'])
     ds['RH'] = (dataset.RH-20)/80
     ds['VPD'] = dataset.VPD/30
     ds['WS'] = dataset.WS/8
+
     ds['CLD'] = dataset.RA-dataset.SW_IN
     ds['CLD'] = ds.CLD.map(abs)
     ds['CLD'] = min_max(ds['CLD'])
-    ds['DIFF_TL'] = dataset.DIFF_TL
+
+    ds['LEAF'] = dataset.LEAF
     ds['SITE'] = dataset.SITE
     ds['TIMESTAMP'] = dataset.TIMESTAMP
     ds['DAYTIME'] = dataset.DAYTIME
@@ -138,7 +140,7 @@ def main(origin_dir, new_dir):
         df['TE'] = df['TA'].map(lambda x: 5.67*10**(-8)*(x-273.15)**4)
         df.rename(columns={'LW_OUT': 'DIFF_TL'}, inplace=True)
 
-        df['DIFF_TL'] = df['DIFF_TL'].map(lambda x: x if 0 <= x <= 40 else pd.NA)
+        df['LEAF'] = df['LEAF'].map(lambda x: x if 0 <= x <= 40 else pd.NA)
         df = df.dropna()
 
         result.append(df)
@@ -150,15 +152,15 @@ def main(origin_dir, new_dir):
     result = preprocess(result)
 
     result_day = result[result['DAYTIME']].drop(['DAYTIME'], axis=1)
-    result_night = result[result['DAYTIME']!=True].drop(['DAYTIME'], axis=1)
+    result_night = result[result['DAYTIME'] != True].drop(['DAYTIME'], axis=1)
 
     result_day.to_csv(
-        os.path.join(new_dir, 'GPP', 'temp_DAY.csv'),
+        os.path.join(new_dir, 'RECO', 'temp_DAY.csv'),
         sep=',',
         index=False
     )
     result_night.to_csv(
-        os.path.join(new_dir, 'GPP', 'temp_NIGHT.csv'),
+        os.path.join(new_dir, 'RECO', 'temp_NIGHT.csv'),
         sep=',',
         index=False
     )
