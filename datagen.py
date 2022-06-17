@@ -32,7 +32,7 @@ def preprocess(dataset):
         year = ts[:4]
         month = ts[4:6]
         day = ts[6:8]
-        ordinal = abs(date.fromisoformat('-'.join([year, month, day])) - date(int(year), 1, 1)).days
+        ordinal = abs(date(int(year), int(month), int(day)) - date(int(year), 1, 1)).days
         return ordinal / 365
 
     def acc_ta(series):
