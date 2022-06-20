@@ -89,9 +89,9 @@ def preprocess(dataset):
     ds['TE'] = min_max(dataset['TE'])
     ds['RA'] = min_max(dataset['RA'])
     ds['GPP_DT'] = standardization(dataset['GPP_DT'].map(lambda x: set_range(x, 3, -1)))
-    ds['GPP_DT'] = min_max(ds['GPP_DT']).map(lambda x: set_range(x, 0.999, 0.001))
+    ds['GPP_DT'] = min_max(ds['GPP_DT']).map(lambda x: set_range(x, 0.999, 0.001)) * 100
     ds['RECO_DT'] = standardization(dataset['RECO_DT'].map(lambda x: set_range(x, 3, -1)))
-    ds['RECO_DT'] = min_max(ds['RECO_DT']).map(lambda x: set_range(x, 0.999, 0.001))
+    ds['RECO_DT'] = min_max(ds['RECO_DT']).map(lambda x: set_range(x, 0.999, 0.001)) * 100
     ds['RH'] = (dataset.RH-20)/80
     ds['VPD'] = dataset.VPD/30
     ds['WS'] = dataset.WS/8
