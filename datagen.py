@@ -82,19 +82,12 @@ def preprocess(dataset):
 
     ds['SW_IN'] = dataset.SW_IN*(1/1000)
     ds['TA'] = dataset['TA']
-
     ds['ACC_TA'] = acc_ta(ds)
-    ds['TA'] = min_max(dataset['TA'])
 
-    ds['TE'] = min_max(dataset['TE'])
-    ds['RA'] = min_max(dataset['RA'])
-    ds['GPP_DT'] = standardization(dataset['GPP_DT'].map(lambda x: set_range(x, 3, -1)))
+    ds['GPP_DT'] = standardization(dataset['GPP_DT'].map(lambda x: set_range(x, 5, -1)))
     ds['GPP_DT'] = min_max(ds['GPP_DT']).map(lambda x: set_range(x, 0.999, 0.001)) * 100
-    ds['RECO_DT'] = standardization(dataset['RECO_DT'].map(lambda x: set_range(x, 3, -1)))
+    ds['RECO_DT'] = standardization(dataset['RECO_DT'].map(lambda x: set_range(x, 5, -1)))
     ds['RECO_DT'] = min_max(ds['RECO_DT']).map(lambda x: set_range(x, 0.999, 0.001)) * 100
-    ds['RH'] = (dataset.RH-20)/80
-    ds['VPD'] = dataset.VPD/30
-    ds['WS'] = dataset.WS/8
 
     ds['CLD'] = dataset.RA-dataset.SW_IN
     ds['CLD'] = ds.CLD.map(abs)
@@ -102,6 +95,12 @@ def preprocess(dataset):
 
     ds['LEAF'] = dataset.LEAF
     ds['DAYTIME'] = dataset.DAYTIME
+
+    cols = ['RH', 'VPD', 'WS', 'TE', 'RA', 'TA'] + ['LE', 'USTAR', 'TS', 'SWC']
+
+    for col in cols:
+        ds[col] = min_max(dataset[col])
+
     return ds
 
 
@@ -177,7 +176,8 @@ def main(origin_dir, new_dir):
 
     LABLE = 'LW_OUT'
     INPUT = ['SW_IN', 'TA', 'RH', 'VPD', 'WS', 'TIMESTAMP',
-             'RECO_DT', 'GPP_DT'] + [LABLE]  # 단파복사, 기온, 상대습도, VPD, 강수, 풍속, 총광합성량, 호흡량
+             'RECO_DT', 'GPP_DT',
+             'LE', 'USTAR'] + [LABLE]  # 단파복사, 기온, 상대습도, VPD, 강수, 풍속, 총광합성량, 호흡량
 
     result = []
 
@@ -188,15 +188,37 @@ def main(origin_dir, new_dir):
         if 'LW_OUT' not in df.columns:
             continue
 
+        if 'P' not in df.columns:
+            continue
+
         if 'HH' in file:
             df.rename(columns={'TIMESTAMP_START': 'TIMESTAMP'}, inplace=True)
         elif 'DD' in file:
             continue
 
+        if 'TS' in df.columns:
+            TS = df['TS']
+        elif 'TS_1' in df.columns:
+            TS = df['TS_1']
+            TS.name = 'TS'
+
+        if 'SWC' in df.columns:
+            SWC = df['SWC']
+        elif 'SWC_1' in df.columns:
+            SWC = df['SWC_1']
+            SWC.name = 'SWC'
+
         df = df[INPUT]
+        df = pd.concat([df, TS, SWC], axis=1)
 
         bo = '|'.join(["(df['{0}']==-9999.0)".format(x) for x in INPUT[2:]])
+        b1 = '|'.join(["(df['{0}']==-9999)".format(x) for x in ['TS', 'SWC']])
+
         df_nan = df[eval(bo)].index
+        df = df.drop(df_nan)
+        df = df.reset_index()
+
+        df_nan = df[eval(b1)].index
         df = df.drop(df_nan)
         df = df.reset_index()
 

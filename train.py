@@ -90,9 +90,12 @@ def main(temp_dir, result_dir, target, params='params.txt'):
 
         else:
             M = Sequential([
-                Dense(32),
+                Dense(48),
                 ELU(alpha=1),
                 Dropout(0.5),
+                Dense(32),
+                ELU(alpha=1),
+                Dropout(0.2),
                 Dense(16),
                 LeakyReLU(alpha=1),
                 Dropout(0.2),
