@@ -7,7 +7,7 @@ import sys
 import shutil
 
 from keras.models import Sequential, save_model
-from keras.layers import Dense, LeakyReLU, Dropout
+from keras.layers import Dense, LeakyReLU, Dropout, ELU
 from keras.optimizers import adam_v2
 import keras.callbacks
 import time
@@ -90,14 +90,17 @@ def main(temp_dir, result_dir, target, params='params.txt'):
 
         else:
             M = Sequential([
+                Dense(32),
+                ELU(alpha=1),
+                Dropout(0.5),
                 Dense(16),
-                LeakyReLU(alpha=0.2),
+                LeakyReLU(alpha=1),
                 Dropout(0.2),
                 Dense(8),
-                LeakyReLU(alpha=0.2),
+                LeakyReLU(alpha=1),
                 Dropout(0.2),
                 Dense(4),
-                LeakyReLU(alpha=0.2),
+                LeakyReLU(alpha=1),
                 Dense(1)
             ])
         M.compile(optimizer=adam_v2.Adam(learning_rate=LEARNING_RATE), loss='mse', metrics=['mae'])
