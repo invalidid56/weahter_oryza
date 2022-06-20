@@ -10,11 +10,12 @@ import sys
 from datetime import date
 
 
+def min_max(series):
+    return (series - series.min()) / (series.max() - series.min())
+
+
 def preprocess(dataset):
     ds = pd.DataFrame()
-
-    def min_max(series):
-        return (series - series.min())/(series.max()-series.min())
 
     def set_range(x, max_r, min_r):
         if x >= max_r:
@@ -35,36 +36,56 @@ def preprocess(dataset):
         ordinal = abs(date(int(year), int(month), int(day)) - date(int(year), 1, 1)).days
         return ordinal / 365
 
-    def acc_ta(series):
+    def acc_ta(data):
         cold_count = 0
         result = []
         temp = 0
-        stop_count = 0
+        hot_count = 0
+        previous_farm = ''
+        previous_day = 0
 
-        for i, x in enumerate(series):
-            if x > 8.0:
-                cold_count = 0
-                temp += x
-            else:
-                cold_count += 1
-                if cold_count > 128 and not temp == 0:
-                    yearly_max = temp
-                    result[stop_count: i] = [r / yearly_max for r in result[stop_count: i]]
-                    temp = 0
-                    stop_count = i
-                else:
-                    temp += 0
+        # 초기화: 농장이 달라지거나, 온도가 14일 넘게 8도 이하일 때
+
+        for i, x in enumerate(data.itertuples(index=False)):
+            #
+            # Farm Check
+            #
+            current_farm = x.YEAR_SITE
+            if current_farm != previous_farm:
+                temp = hot_count = cold_count = 0
+            previous_farm = current_farm
+
+            #
+            # Day Check
+            #
+
+            current_day = x.DAY_PER_YEAR
+            if current_day != previous_day:
+                if hot_count == 0:
                     cold_count += 1
+                if cold_count >= 14:
+                    # Agr. Year Changed, Winter
+                    temp = 0
+            previous_day = current_day
+
+            if x.TA > 8.0:
+                hot_count += 1
+                temp += x.TA
+
             result.append(temp)
 
         return pd.Series(result, name='ACC_TA')
 
     ds['YEAR_SITE'] = dataset['TIMESTAMP'].map(str).str[:4] + '_' + dataset.SITE
+
     ds['DAY_PER_YEAR'] = dataset.TIMESTAMP.map(day_per_year)
 
-    ds['ACC_TA'] = acc_ta(dataset['TA']).map(lambda x: set_range(x, 0.999, 0.001))
     ds['SW_IN'] = dataset.SW_IN*(1/1000)
+    ds['TA'] = dataset['TA']
+
+    ds['ACC_TA'] = acc_ta(ds)
     ds['TA'] = min_max(dataset['TA'])
+
     ds['TE'] = min_max(dataset['TE'])
     ds['RA'] = min_max(dataset['RA'])
     ds['GPP_DT'] = standardization(dataset['GPP_DT'].map(lambda x: set_range(x, 3, -1)))
@@ -81,7 +102,6 @@ def preprocess(dataset):
 
     ds['LEAF'] = dataset.LEAF
     ds['DAYTIME'] = dataset.DAYTIME
-    # Todo: 일괄 Min_max 적용으로..
     return ds
 
 
@@ -199,7 +219,10 @@ def main(origin_dir, new_dir):
     result = preprocess(result)
 
     result_day = result[result['DAYTIME']].drop(['DAYTIME'], axis=1)
+    result_day['ACC_TA'] = min_max(result_day['ACC_TA'])
     result_night = result[result['DAYTIME'] != True].drop(['DAYTIME'], axis=1)
+    result_night['ACC_TA'] = min_max(result_night['ACC_TA'])
+
 
     result_day.to_csv(
         os.path.join(new_dir, 'RECO', 'temp_DAY.csv'),
