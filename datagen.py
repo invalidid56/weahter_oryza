@@ -76,17 +76,58 @@ def preprocess(dataset):
 
         return pd.Series(result, name='ACC_TA')
 
+    def acc_sw(data):
+        cold_count = 0
+        result = []
+        temp = 0
+        hot_count = 0
+        previous_farm = ''
+        previous_day = 0
+
+        # 초기화: 농장이 달라지거나, 온도가 14일 넘게 8도 이하일 때
+
+        for i, x in enumerate(data.itertuples(index=False)):
+            #
+            # Farm Check
+            #
+            current_farm = x.YEAR_SITE
+            if current_farm != previous_farm:
+                temp = hot_count = cold_count = 0
+            previous_farm = current_farm
+
+            #
+            # Day Check
+            #
+
+            current_day = x.DAY_PER_YEAR
+            if current_day != previous_day:
+                if hot_count == 0:
+                    cold_count += 1
+                if cold_count >= 14:
+                    # Agr. Year Changed, Winter
+                    temp = 0
+            previous_day = current_day
+
+            if x.SW_IN > 40:
+                hot_count += 1
+                temp += x.SW_IN
+
+            result.append(temp)
+
+        return pd.Series(result, name='ACC_SW')
+
     ds['YEAR_SITE'] = dataset['TIMESTAMP'].map(str).str[:4] + '_' + dataset.SITE
 
     ds['DAY_PER_YEAR'] = dataset.TIMESTAMP.map(day_per_year)
 
-    ds['SW_IN'] = dataset.SW_IN*(1/1000)
+    ds['SW_IN'] = dataset.SW_IN
     ds['TA'] = dataset['TA']
     ds['ACC_TA'] = acc_ta(ds)
+    ds['ACC_SW'] = acc_sw(ds)
 
-    ds['GPP_DT'] = standardization(dataset['GPP_DT'].map(lambda x: set_range(x, 5, -1)))
+    ds['GPP_DT'] = standardization(dataset['GPP_DT'])
     ds['GPP_DT'] = min_max(ds['GPP_DT']).map(lambda x: set_range(x, 0.999, 0.001)) * 100
-    ds['RECO_DT'] = standardization(dataset['RECO_DT'].map(lambda x: set_range(x, 5, -1)))
+    ds['RECO_DT'] = standardization(dataset['RECO_DT'].map(lambda x: set_range(x, 15, -1)))
     ds['RECO_DT'] = min_max(ds['RECO_DT']).map(lambda x: set_range(x, 0.999, 0.001)) * 100
 
     ds['CLD'] = dataset.RA-dataset.SW_IN
@@ -96,7 +137,7 @@ def preprocess(dataset):
     ds['LEAF'] = dataset.LEAF
     ds['DAYTIME'] = dataset.DAYTIME
 
-    cols = ['RH', 'VPD', 'WS', 'TE', 'RA', 'TA'] + ['LE', 'USTAR', 'TS', 'SWC']
+    cols = ['RH', 'VPD', 'WS', 'TE', 'RA', 'TA', 'SW_IN']
 
     for col in cols:
         ds[col] = min_max(dataset[col])
@@ -177,7 +218,7 @@ def main(origin_dir, new_dir):
     LABLE = 'LW_OUT'
     INPUT = ['SW_IN', 'TA', 'RH', 'VPD', 'WS', 'TIMESTAMP',
              'RECO_DT', 'GPP_DT',
-             'LE', 'USTAR'] + [LABLE]  # 단파복사, 기온, 상대습도, VPD, 강수, 풍속, 총광합성량, 호흡량
+            ] + [LABLE]  # 단파복사, 기온, 상대습도, VPD, 강수, 풍속, 총광합성량, 호흡량
 
     result = []
 
@@ -188,43 +229,22 @@ def main(origin_dir, new_dir):
         if 'LW_OUT' not in df.columns:
             continue
 
-        if 'P' not in df.columns:
-            continue
-
         if 'HH' in file:
             df.rename(columns={'TIMESTAMP_START': 'TIMESTAMP'}, inplace=True)
         elif 'DD' in file:
             continue
 
-        if 'TS' in df.columns:
-            TS = df['TS']
-        elif 'TS_1' in df.columns:
-            TS = df['TS_1']
-            TS.name = 'TS'
-
-        if 'SWC' in df.columns:
-            SWC = df['SWC']
-        elif 'SWC_1' in df.columns:
-            SWC = df['SWC_1']
-            SWC.name = 'SWC'
-
         df = df[INPUT]
-        df = pd.concat([df, TS, SWC], axis=1)
-
         bo = '|'.join(["(df['{0}']==-9999.0)".format(x) for x in INPUT[2:]])
-        b1 = '|'.join(["(df['{0}']==-9999)".format(x) for x in ['TS', 'SWC']])
 
         df_nan = df[eval(bo)].index
-        df = df.drop(df_nan)
-        df = df.reset_index()
-
-        df_nan = df[eval(b1)].index
         df = df.drop(df_nan)
         df = df.reset_index()
 
         df['SITE'] = pd.Series([site for _ in range(len(df))])
 
         df['DAYTIME'] = df['SW_IN'].map(lambda x: x > 1)
+
         df['LW_OUT'] = df.apply(lambda x: leaf_temperature(x['LW_OUT']), axis=1)
         df['TE'] = df['TA'].map(lambda x: 5.67*10**(-8)*(x-273.15)**4)
         df.rename(columns={'LW_OUT': 'LEAF'}, inplace=True)
@@ -240,11 +260,16 @@ def main(origin_dir, new_dir):
 
     result = preprocess(result)
 
+    result['HEADING'] = result['DAY_PER_YEAR'].map(lambda x: (30*4)/365 < x < (30*8)/365)
+    result = result[result['HEADING']].drop(['HEADING'], axis=1)
+
     result_day = result[result['DAYTIME']].drop(['DAYTIME'], axis=1)
     result_day['ACC_TA'] = min_max(result_day['ACC_TA'])
+    result_day['ACC_SW'] = min_max(result_day['ACC_SW'])
+
     result_night = result[result['DAYTIME'] != True].drop(['DAYTIME'], axis=1)
     result_night['ACC_TA'] = min_max(result_night['ACC_TA'])
-
+    result_day['ACC_SW'] = min_max(result_day['ACC_SW'])
 
     result_day.to_csv(
         os.path.join(new_dir, 'RECO', 'temp_DAY.csv'),
