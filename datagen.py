@@ -213,7 +213,7 @@ def main(origin_dir, new_dir):
     if os.path.exists(new_dir):
         shutil.rmtree(new_dir)
     os.mkdir(new_dir)
-    os.mkdir(os.path.join(new_dir, 'RECO'))
+    os.mkdir(os.path.join(new_dir, 'LEAF'))
 
     LABLE = 'LW_OUT'
     INPUT = ['SW_IN', 'TA', 'RH', 'VPD', 'WS', 'TIMESTAMP',
@@ -259,8 +259,9 @@ def main(origin_dir, new_dir):
     result['RA'] = get_ra(result)
 
     result = preprocess(result)
-
     result['HEADING'] = result['DAY_PER_YEAR'].map(lambda x: (30*4)/365 < x < (30*8)/365)
+
+    """
     result = result[result['HEADING']].drop(['HEADING'], axis=1)
 
     result_day = result[result['DAYTIME']].drop(['DAYTIME'], axis=1)
@@ -270,14 +271,24 @@ def main(origin_dir, new_dir):
     result_night = result[result['DAYTIME'] != True].drop(['DAYTIME'], axis=1)
     result_night['ACC_TA'] = min_max(result_night['ACC_TA'])
     result_day['ACC_SW'] = min_max(result_day['ACC_SW'])
+    """     # 분류 세분화?
 
-    result_day.to_csv(
-        os.path.join(new_dir, 'RECO', 'temp_DAY.csv'),
+    result = result[result['DAYTIME']].drop(['DAYTIME'], axis=1)
+    result_heading = result[result['HEADING']].drop(['HEADING'], axis=1)
+    result_heading['ACC_TA'] = min_max(result_heading['ACC_TA'])
+    result_heading['ACC_SW'] = min_max(result_heading['ACC_SW'])
+
+    result_after = result[result['HEADING']].drop(['HEADING'], axis=1)
+    result_after['ACC_TA'] = min_max(result_after['ACC_TA'])
+    result_after['ACC_SW'] = min_max(result_after['ACC_SW'])
+
+    result_heading.to_csv(
+        os.path.join(new_dir, 'LEAF', 'temp_HEADING.csv'),
         sep=',',
         index=False
     )
-    result_night.to_csv(
-        os.path.join(new_dir, 'RECO', 'temp_NIGHT.csv'),
+    result_after.to_csv(
+        os.path.join(new_dir, 'LEAF', 'temp_AFTER.csv'),
         sep=',',
         index=False
     )

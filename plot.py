@@ -28,22 +28,22 @@ def main(result_dir, temp_dir, target, params='params.txt'):
     #
     # For Each Style: Day and Night
     #
-    data_styles = ['DAY', 'NIGHT']
+    data_styles = ['HEADING', 'AFTER']
     for data_style in data_styles:
         test_set = pd.read_csv(os.path.join(result_dir, target, data_style, 'data', 'test.csv'))
 
-        if target == 'RECO':
-            test_y = test_set.RECO_DT
-            test_x = test_set.drop(['RECO_DT', 'LEAF', 'GPP_DT',
-                                    'YEAR_SITE'], axis=1)
-
-        elif target == 'LEAF':
+        if target == 'LEAF':
             test_y = test_set.LEAF
-            test_x = test_set.drop(['LEAF', 'GPP_DT', 'YEAR_SITE'], axis=1)
+            test_x = test_set.drop(['LEAF', 'RECO_DT', 'GPP_DT', 'YEAR_SITE'], axis=1)
 
         elif target == 'GPP':
             test_y = test_set.GPP_DT
-            test_x = test_set.drop(['GPP_DT', 'YEAR_SITE'], axis=1)
+            test_x = test_set.drop(['GPP_DT', 'RECO_DT', 'YEAR_SITE'], axis=1)
+
+        elif target == 'RECO':
+            test_y = test_set.RECO_DT
+            test_x = test_set.drop(['RECO_DT', 'YEAR_SITE'], axis=1)
+
 
         # Loss in a Bar
 
@@ -96,36 +96,36 @@ def main(result_dir, temp_dir, target, params='params.txt'):
                     'Model No. {0} in {1} Style-\n Test Loss: {2}\nR2 Score: {3}\n'.format(i, data_style, tl, r2_socres[i])
                 )
         #
-        #
-        #
-        if target == 'RECO':
-            if os.path.exists(os.path.join(temp_dir, 'LEAF')):
-                shutil.rmtree(os.path.join(temp_dir, 'LEAF'))
-            os.mkdir(os.path.join(temp_dir, 'LEAF'))
-            for data_style in ('DAY', 'NIGHT'):
-                temp_data = pd.read_csv(os.path.join(temp_dir, target, 'temp_{0}.csv'.format(data_style)))
-                temp_data = temp_data.drop(['RECO_DT'], axis=1)
-                temp_x = temp_data.drop(['LEAF', 'GPP_DT',
-                                         'YEAR_SITE'], axis=1).values.tolist()
-                ys_expect = model.predict(temp_x).tolist()
-                ys_expect = pd.Series([y[0] for y in ys_expect], name='RECO_DT')
-
-                result_df = pd.concat([temp_data, ys_expect], axis=1)
-                result_df.to_csv(os.path.join(temp_dir, 'LEAF', 'temp_{0}.csv'.format(data_style)), index=False)
-
-        elif target == 'LEAF':
+        # LEAF-GPP-RECO
+        # origin: RECO LEAF GPP
+        if target == 'LEAF':
             if os.path.exists(os.path.join(temp_dir, 'GPP')):
                 shutil.rmtree(os.path.join(temp_dir, 'GPP'))
             os.mkdir(os.path.join(temp_dir, 'GPP'))
-            for data_style in ('DAY', 'NIGHT'):
+            for data_style in ('HEADING', 'AFTER'):
                 temp_data = pd.read_csv(os.path.join(temp_dir, target, 'temp_{0}.csv'.format(data_style)))
                 temp_data = temp_data.drop(['LEAF'], axis=1)
-                temp_x = temp_data.drop(['GPP_DT', 'YEAR_SITE'], axis=1).values.tolist()
+                temp_x = temp_data.drop(['GPP_DT', 'RECO_DT',
+                                         'YEAR_SITE'], axis=1).values.tolist()
                 ys_expect = model.predict(temp_x).tolist()
                 ys_expect = pd.Series([y[0] for y in ys_expect], name='LEAF')
 
                 result_df = pd.concat([temp_data, ys_expect], axis=1)
                 result_df.to_csv(os.path.join(temp_dir, 'GPP', 'temp_{0}.csv'.format(data_style)), index=False)
+
+        elif target == 'GPP':
+            if os.path.exists(os.path.join(temp_dir, 'RECO')):
+                shutil.rmtree(os.path.join(temp_dir, 'RECO'))
+            os.mkdir(os.path.join(temp_dir, 'RECO'))
+            for data_style in ('HEADING', 'AFTER'):
+                temp_data = pd.read_csv(os.path.join(temp_dir, target, 'temp_{0}.csv'.format(data_style)))
+                temp_data = temp_data.drop(['GPP_DT'], axis=1)
+                temp_x = temp_data.drop(['RECO_DT', 'YEAR_SITE'], axis=1).values.tolist()
+                ys_expect = model.predict(temp_x).tolist()
+                ys_expect = pd.Series([y[0] for y in ys_expect], name='GPP_DT')
+
+                result_df = pd.concat([temp_data, ys_expect], axis=1)
+                result_df.to_csv(os.path.join(temp_dir, 'RECO', 'temp_{0}.csv'.format(data_style)), index=False)
 
     return True
 
