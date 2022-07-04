@@ -88,11 +88,33 @@ def main(temp_dir, result_dir, target, params='params.txt'):
                 Dense(1)
             ])
 
-        else:
+        elif target == 'GPP':
             M = Sequential([
                 Dense(48),
                 ELU(alpha=1),
                 Dropout(0.5),
+                Dense(32),
+                ELU(alpha=1),
+                Dropout(0.2),
+                Dense(16),
+                LeakyReLU(alpha=1),
+                Dropout(0.2),
+                Dense(8),
+                LeakyReLU(alpha=1),
+                Dropout(0.2),
+                Dense(4),
+                LeakyReLU(alpha=1),
+                Dense(1)
+            ])
+
+        elif target == 'RECO':
+            M = Sequential([
+                Dense(48),
+                ELU(alpha=1),
+                Dropout(0.5),
+                Dense(36),
+                ELU(alpha=1),
+                Dropout(0.2),
                 Dense(32),
                 ELU(alpha=1),
                 Dropout(0.2),

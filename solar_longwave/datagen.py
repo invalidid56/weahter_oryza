@@ -16,6 +16,9 @@ def z_norm(data: pd.Series):
     return data - data.mean() / data.std()
 
 
+def get_ra(site: pd.Series, time: pd.Series):
+    return None     # RA
+
 def main(raw_dir, temp_dir):
     #
     # Declare Constants
@@ -83,9 +86,11 @@ def main(raw_dir, temp_dir):
         df['LEAF'] = df['LEAF'].map(lambda x: x if 0 <= x <= 40 else pd.NA)
         df = df.dropna()    # LEAF
 
-        df['YEAR_SITE']
+        df['TE'] = df['TA'].map(lambda x: 5.67*10**(-8)*(x-273.15)**4)      # Energy
 
+        df['YEAR_SITE'] = df['TIMESTAMP'].map(str).str[:4] + '_' + df['SITE']       # YEAR SITE
 
+        df['RA'] = get_ra(df['SITE'], df['TIMESTAMP'])  # RA
 
 
 def to_generator(temp_dir, divide: tuple):

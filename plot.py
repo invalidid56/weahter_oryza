@@ -44,7 +44,6 @@ def main(result_dir, temp_dir, target, params='params.txt'):
             test_y = test_set.RECO_DT
             test_x = test_set.drop(['RECO_DT', 'YEAR_SITE'], axis=1)
 
-
         # Loss in a Bar
 
         test_losses = []
