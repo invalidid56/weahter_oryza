@@ -3,13 +3,23 @@
 BASEDIR=$(pwd)
 
 cd ..
+
 rm -rf result
-python datagen.py raw_data temp
-python train.py temp result LEAF
-python plot.py result temp LEAF
-python train.py temp result GPP
-python plot.py result temp GPP
-python train.py temp result RECO
-python plot.py result temp RECO
+echo Generating Data
+python weather_oryza/datagen.py raw_data temp
+
+echo Training Leaf Temp. Model
+python weather_oryza/train.py temp result LEAF
+python weather_oryza/plot.py result temp LEAF
+
+echo Training GPP Model
+python weather_oryza/train.py temp result GPP
+python weather_oryza/plot.py result temp GPP
+
+echo Training RECO Model
+python weather_oryza/train.py temp result RECO
+python weather_oryza/plot.py result temp RECO
+
+echo Training Process Finished Check Result Folder
 
 cd $BASEDIR
