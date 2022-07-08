@@ -8,6 +8,7 @@ import shutil
 import math
 import pandas as pd
 from datetime import date
+from numpy import isnan
 
 
 def set_range(x, max, min):
@@ -98,6 +99,7 @@ def accumulate(sr: pd.Series, year_site: pd.Series, day_per_year: pd.Series, thr
 
     temp = 0
     result = []
+    print("Origing Len {0}".format(len(sr.tolist())))
 
     for i, (x, ys, dpy) in enumerate(zip(sr.tolist(), year_site.tolist(), day_per_year.tolist())):
         # Farm Check
@@ -116,12 +118,10 @@ def accumulate(sr: pd.Series, year_site: pd.Series, day_per_year: pd.Series, thr
             keep_cold = True
 
         if x >= threshold:
-            temp += x
+            temp += x/10
             keep_cold = False
-        else:
-            temp += 0
         result.append(temp)
-
+    print("PRO LEN {0}".format(len(result)))
     return pd.Series(result)
 
 
@@ -167,8 +167,9 @@ def main(raw_dir, temp_dir):
                 COLUMNS_TO_READ[0] = 'TIMESTAMP_START'
                 df = df[COLUMNS_TO_READ]
             except KeyError:
-                print("SKIPPING {0}".format(file))
+                #print("SKIPPING {0}".format(file))
                 continue
+        #print("Processig {0}".format(file))
 
         #
         # Remove Missing Value
@@ -212,16 +213,20 @@ def main(raw_dir, temp_dir):
 
         df['DAY_PER_YEAR'] = df['TIMESTAMP'].map(get_dpy)  # Day Per Year
 
+        print('total len {0}'.format(len(df)))
         df['ACC_TA'] = accumulate(sr=df['TA'],
                                   year_site=df['YEAR_SITE'],
                                   day_per_year=df['DAY_PER_YEAR'],
                                   threshold=8,
-                                  cold_day=14)  # Accumulated Temperature
+                                  cold_day=14).reset_index(drop=True)  # Accumulated Temperature
+        print(df['ACC_TA'].dropna())
         df['ACC_SW'] = accumulate(sr=df['SW_IN'],
                                   year_site=df['YEAR_SITE'],
                                   day_per_year=df['DAY_PER_YEAR'],
                                   threshold=40,
-                                  cold_day=14)  # Accumulated Shortwave Input
+                                  cold_day=14).reset_index(drop=True)  # Accumulated Shortwave Input
+        print(df['ACC_SW'].dropna())
+        # TODO: ACC NAN ERRROR!!
 
         df['HEADING'] = df['DAY_PER_YEAR'].map(lambda x: (30 * 4) / 365 < x < (30 * 8) / 365)  # Heading
 
@@ -229,15 +234,16 @@ def main(raw_dir, temp_dir):
         # Preprocessing Data
         # Standardization, Quality Control, Drop Cols
 
-        df['GPP_DT'] = df['GPP_DT'].map(lambda x: set_range(x, 40, -1))
-        df['RECO_DT'] = df['RECO_DT'].map(lambda x: set_range(x, 15, 0))  # Quality Control
+        df['GPP_DT'] = df['GPP_DT'].map(lambda x: set_range(x, 39.99, -0.99))
+        df['RECO_DT'] = df['RECO_DT'].map(lambda x: set_range(x, 14.99, 0.01))  # Quality Control
 
-        cols = ['RH', 'VPD', 'WS', 'TE', 'RA', 'TA', 'SW_IN', 'GPP_DT', 'RECO_DT', 'ACC_TA', 'ACC_SW']
+        cols = ['RH', 'VPD', 'WS', 'TE', 'RA', 'CLD', 'TA', 'SW_IN', 'GPP_DT', 'RECO_DT', 'ACC_TA', 'ACC_SW']
         for col in cols:
-            if col not in ['GPP_DT', 'RECO_DT']:
+            """if col not in ['GPP_DT', 'RECO_DT']:
                 df[col] = minmax_norm(z_norm(df[col]))  # Normalization
             else:
-                df[col] = z_norm(df[col])
+                df[col] = z_norm(df[col])"""
+            df[col] = minmax_norm(z_norm(df[col])) + 0.000001  # Normalization
 
         df = df.drop(['TIMESTAMP', 'SITE', 'DAYTIME', 'LW_OUT'], axis=1)  # drop columns
 
