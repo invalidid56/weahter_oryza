@@ -164,17 +164,17 @@ def main(raw_dir, temp_dir):
             df = df[COLUMNS_TO_READ]
         except KeyError:
             try:
-                COLUMNS_TO_READ[0] = 'TIMESTAMP_START'
-                df = df[COLUMNS_TO_READ]
+                df = df[['TIMESTAMP_START'] + COLUMNS_TO_READ[1:]]
             except KeyError:
                 print("SKIPPING {0}".format(file))
                 continue
+
         print("Processig {0}".format(file))
 
         #
         # Remove Missing Value
         #
-        mv = '|'.join(["(df['{0}']==-9999.0) | (df['{0}']==9999.0)".format(x) for x in COLUMNS_TO_READ])
+        mv = '|'.join(["(df['{0}']==-9999.0) | (df['{0}']==9999.0)".format(x) for x in df.columns])
         index_mv = df[eval(mv)].index
         df = df.drop(index_mv)
         df = df.reset_index(drop=True)
