@@ -8,7 +8,6 @@ import shutil
 import math
 import pandas as pd
 from datetime import date
-from numpy import isnan
 
 
 def set_range(x, max, min):
@@ -99,14 +98,15 @@ def accumulate(sr: pd.Series, year_site: pd.Series, day_per_year: pd.Series, thr
 
     temp = 0
     result = []
-    print("Origing Len {0}".format(len(sr.tolist())))
+    count = 0
 
     for i, (x, ys, dpy) in enumerate(zip(sr.tolist(), year_site.tolist(), day_per_year.tolist())):
+        count += 1
         # Farm Check
         if previous_farm != ys:
             previous_farm = ys
             keep_cold = False
-            temp = 0
+            temp = 0.0000001
 
         # Daily Check
         if previous_day != dpy:
@@ -114,14 +114,14 @@ def accumulate(sr: pd.Series, year_site: pd.Series, day_per_year: pd.Series, thr
             if keep_cold:
                 cold_count += 1
             if cold_count >= cold_day:
-                temp = 0
+                temp = 0.0000001
             keep_cold = True
 
         if x >= threshold:
-            temp += x/10
+            temp += x/100
             keep_cold = False
+
         result.append(temp)
-    print("PRO LEN {0}".format(len(result)))
     return pd.Series(result)
 
 
@@ -167,9 +167,9 @@ def main(raw_dir, temp_dir):
                 COLUMNS_TO_READ[0] = 'TIMESTAMP_START'
                 df = df[COLUMNS_TO_READ]
             except KeyError:
-                #print("SKIPPING {0}".format(file))
+                print("SKIPPING {0}".format(file))
                 continue
-        #print("Processig {0}".format(file))
+        print("Processig {0}".format(file))
 
         #
         # Remove Missing Value
@@ -201,6 +201,7 @@ def main(raw_dir, temp_dir):
         df.drop('LW_OUT', axis=1)
         df['LEAF'] = df['LEAF'].map(lambda x: x if 0 <= x <= 40 else pd.NA)
         df = df.dropna()  # LEAF
+        df = df.reset_index(drop=True)
 
         df['TE'] = df['TA'].map(lambda x: 5.67 * 10 ** (-8) * (x - 273.15) ** 4)  # Energy
 
@@ -213,20 +214,17 @@ def main(raw_dir, temp_dir):
 
         df['DAY_PER_YEAR'] = df['TIMESTAMP'].map(get_dpy)  # Day Per Year
 
-        print('total len {0}'.format(len(df)))
         df['ACC_TA'] = accumulate(sr=df['TA'],
                                   year_site=df['YEAR_SITE'],
                                   day_per_year=df['DAY_PER_YEAR'],
                                   threshold=8,
-                                  cold_day=14).reset_index(drop=True)  # Accumulated Temperature
-        print(df['ACC_TA'].dropna())
+                                  cold_day=14).reset_index(drop=True)   # Accumulated Temperature
+
         df['ACC_SW'] = accumulate(sr=df['SW_IN'],
                                   year_site=df['YEAR_SITE'],
                                   day_per_year=df['DAY_PER_YEAR'],
                                   threshold=40,
                                   cold_day=14).reset_index(drop=True)  # Accumulated Shortwave Input
-        print(df['ACC_SW'].dropna())
-        # TODO: ACC NAN ERRROR!!
 
         df['HEADING'] = df['DAY_PER_YEAR'].map(lambda x: (30 * 4) / 365 < x < (30 * 8) / 365)  # Heading
 
