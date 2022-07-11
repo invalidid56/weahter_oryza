@@ -23,3 +23,7 @@ We Used Temperature, Shortwave Input, Humidity to Train Model. When you run trai
 1. Install Package using pip or setup.py
 2. Run **train.sh**
 3. Check your result in **weather_oryza/result**
+
+### Contact
+***
+Email: invalidid56@snu.ac.kr
