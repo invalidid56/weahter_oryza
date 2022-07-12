@@ -237,10 +237,10 @@ def main(raw_dir, temp_dir):
 
         cols = ['RH', 'VPD', 'WS', 'TE', 'RA', 'CLD', 'TA', 'SW_IN', 'GPP_DT', 'RECO_DT', 'ACC_TA', 'ACC_SW']
         for col in cols:
-            """if col not in ['GPP_DT', 'RECO_DT']:
+            if col not in ['GPP_DT', 'RECO_DT']:
                 df[col] = minmax_norm(z_norm(df[col]))  # Normalization
             else:
-                df[col] = z_norm(df[col])"""
+                df[col] = z_norm(df[col])
             df[col] = minmax_norm(z_norm(df[col])) + 0.000001  # Normalization
 
         df = df.drop(['TIMESTAMP', 'SITE', 'DAYTIME', 'LW_OUT'], axis=1)  # drop columns
