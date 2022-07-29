@@ -226,7 +226,9 @@ def main(raw_dir, temp_dir):
                                   threshold=40,
                                   cold_day=14).reset_index(drop=True)  # Accumulated Shortwave Input
 
-        df['HEADING'] = df['DAY_PER_YEAR'].map(lambda x: (30 * 4) / 365 < x < (30 * 8) / 365)  # Heading
+        df['HEADING'] = df['DAY_PER_YEAR'].map(lambda x: (30 * 5 + 15) / 365 < x < (30 * 8 + 15) / 365)  # Heading
+        df['AFTER'] = df['DAY_PER_YEAR'].map(lambda x: (30 * 8 + 15) / 365 < x < (30 * 10 + 31) / 365)  # Heading
+
 
         #
         # Preprocessing Data
@@ -253,7 +255,7 @@ def main(raw_dir, temp_dir):
     result = pd.concat(results, axis=0)
     data_style = ['HEADING', 'AFTER']
     for data in data_style:
-        output = result[result['HEADING'] == (data == 'HEADING')].drop(['HEADING'], axis=1)
+        output = result[result[data]].drop(data_style, axis=1)
         output.to_csv(
             os.path.join(temp_dir, 'LEAF', 'temp_{0}.csv'.format(data)),
             sep=',',
