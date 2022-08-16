@@ -48,7 +48,10 @@ def get_ra(site: pd.Series, time: pd.Series):  # Extract Location-Based RA from 
         'PH-RiF': (14.14119, 121.26526),
         'US-HRA': (34.585208, -91.751735),
         'US-HRC': (34.58883, -91.751658),
-        'US-Twt': (38.1087204, -121.6531)
+        'US-Twt': (38.1087204, -121.6531),
+        'FNL': (0, 0),
+        'GRK': (0, 0),
+        'CFK': (0, 0)   # TODO: Site 정보 추가
     }
 
     coord = site.map(lambda x: COORDINATE[x])
@@ -226,16 +229,16 @@ def main(raw_dir, temp_dir):
                                   threshold=40,
                                   cold_day=14).reset_index(drop=True)  # Accumulated Shortwave Input
 
-        df['HEADING'] = df['DAY_PER_YEAR'].map(lambda x: (30 * 5 + 15) / 365 < x < (30 * 8 + 15) / 365)  # Heading
-        df['AFTER'] = df['DAY_PER_YEAR'].map(lambda x: (30 * 8 + 15) / 365 < x < (30 * 10 + 31) / 365)  # Heading
+        df['HEADING'] = df['DAY_PER_YEAR'].map(lambda x: (30 * 4 + 15) / 365 < x < (30 * 8 + 15) / 365)  # Heading
+        df['AFTER'] = df['DAY_PER_YEAR'].map(lambda x: (30 * 8 + 15) / 365 < x or x < (30 * 4 + 15) / 365)  # Heading
 
 
         #
         # Preprocessing Data
         # Standardization, Quality Control, Drop Cols
 
+        df['LEAF'] = 0
         df['GPP_DT'] = df['GPP_DT'].map(lambda x: set_range(x, 39.99, -0.99))
-        df['RECO_DT'] = df['RECO_DT'].map(lambda x: set_range(x, 14.99, 0.01))  # Quality Control
 
         cols = ['RH', 'VPD', 'WS', 'TE', 'RA', 'CLD', 'TA', 'SW_IN', 'GPP_DT', 'RECO_DT', 'ACC_TA', 'ACC_SW']
         for col in cols:
