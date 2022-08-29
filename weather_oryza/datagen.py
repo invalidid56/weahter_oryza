@@ -125,10 +125,70 @@ def accumulate(sr: pd.Series, year_site: pd.Series, day_per_year: pd.Series, thr
             keep_cold = False
 
         result.append(temp)
-    return pd.Series(result)
+    return pd.Series(result, dtype='float64')
 
 
-def main(raw_dir, temp_dir):
+def main(raw_dir, temp_dir, mode='train'):
+    #
+    # Test Data Processing
+    #
+    if mode == 'test_proc':
+        #
+        # Make Temp Directory
+        #
+
+        #
+        # Read Files
+        #
+        file_list = [f for f in os.listdir(raw_dir) if f.endswith('xlsx')]
+        for file in file_list:
+            df = pd.read_excel(os.path.join(raw_dir, file))
+            df.columns = [x.upper() for x in df.columns]
+            # EA가 있으면 RH가 없고, RH가 없으면 EA가 있
+            df = df.rename(columns={
+                'RSDN(1)': 'SW_IN',
+                'RSDN(1).1': 'SW_IN',
+                'RSDN(1)_NIGHT=0': 'SW_IN',
+                'T_AIR(1)': 'TA',
+                'WS(1)': 'WS',
+                'WS(1).1': 'WS',
+                'EA': 'EA',
+                'EA(1)': 'EA',
+                'GPP_MPTM': 'GPP_DT',
+                'GPP': 'GPP_DT',
+                'RH(1)': 'RH'
+            })
+            df = df.loc[2:]
+
+            if ({'TIMESTAMP', 'SW_IN', 'TA', 'WS', 'EA', 'GPP_DT'} - set(df.columns)) == {'EA'} \
+                    and 'RH' in df.columns:
+                df['ES'] = 0.6108 * (17.27 * df['TA'] / (df['TA'] + 237.3)).map(math.exp)
+                df['EA'] = df['RH'] * df['ES'] / 100
+
+            try:
+                df = df[['TIMESTAMP', 'SW_IN', 'TA', 'WS', 'EA', 'GPP_DT']]
+                df['TIMESTAMP'] = df['TIMESTAMP'].map(
+                    lambda x: x.strftime('%Y%m%d%H%M')
+                )
+            except KeyError:
+                print('ERROR at {0}'.format(file))
+                continue
+
+            try:
+                df['ES'] = df['TA'].map(lambda x: 0.6108 * math.exp(17.27*x/(x+237.3)))
+            except TypeError:
+                print(df['TA'])
+                print(file)
+                exit()
+
+            df['RH'] = df['EA'] / df['ES']
+            df['VPD'] = df['ES'] - df['EA']
+            df['LW_OUT'] = 0
+            df['RECO_DT'] = 0
+            df['GPP_DT'] = 0
+
+            df.to_csv(os.path.join(raw_dir, file[:-5]+'.csv'), index=False)
+
     #
     # Declare Constants
     #
@@ -153,7 +213,7 @@ def main(raw_dir, temp_dir):
     #
     # Read from Files
     #
-    files = os.listdir(raw_dir)
+    files = [f for f in os.listdir(raw_dir) if f.endswith('csv')]
     results = []
 
     for file in files:
@@ -171,7 +231,6 @@ def main(raw_dir, temp_dir):
             except KeyError:
                 print("SKIPPING {0}".format(file))
                 continue
-
         print("Processig {0}".format(file))
 
         #
@@ -188,7 +247,10 @@ def main(raw_dir, temp_dir):
         if 'HH' in file:
             df.rename(columns={'TIMESTAMP_START': 'TIMESTAMP'}, inplace=True)  # TIMESTAMP Norm.
 
-        df['SITE'] = pd.Series(site for _ in range(len(df)))  # SITE
+        if mode == 'train':
+            df['SITE'] = pd.Series(site for _ in range(len(df)))  # SITE
+        elif mode == 'test' or mode == 'test_proc':
+            df['SITE'] = file[:3]
         df['DAYTIME'] = df['SW_IN'].map(lambda x: x > THR_SWIN)  # DAYTIME
 
         def leaf_temperature(lw):
@@ -201,8 +263,12 @@ def main(raw_dir, temp_dir):
             return sqrt(sqrt(lw / (0.98 * 5.67) * 10 ** 8)) - 273.15
 
         df['LEAF'] = leaf_temperature(df['LW_OUT'])
+        if df['LEAF'].min() < -270:
+            df['LEAF'] = 0
         df.drop('LW_OUT', axis=1)
-        df['LEAF'] = df['LEAF'].map(lambda x: x if 0 <= x <= 40 else pd.NA)
+
+        df['LEAF'] = df['LEAF'].map(lambda x: x if (-1 <= x <= 40 or x < -273) else pd.NA)
+
         df = df.dropna()  # LEAF
         df = df.reset_index(drop=True)
 
@@ -237,7 +303,6 @@ def main(raw_dir, temp_dir):
         # Preprocessing Data
         # Standardization, Quality Control, Drop Cols
 
-        df['LEAF'] = 0
         df['GPP_DT'] = df['GPP_DT'].map(lambda x: set_range(x, 39.99, -0.99))
 
         cols = ['RH', 'VPD', 'WS', 'TE', 'RA', 'CLD', 'TA', 'SW_IN', 'GPP_DT', 'RECO_DT', 'ACC_TA', 'ACC_SW']
@@ -249,7 +314,6 @@ def main(raw_dir, temp_dir):
             df[col] = minmax_norm(z_norm(df[col])) + 0.000001  # Normalization
 
         df = df.drop(['TIMESTAMP', 'SITE', 'DAYTIME', 'LW_OUT'], axis=1)  # drop columns
-
         results.append(df)
 
     #
@@ -271,5 +335,6 @@ def main(raw_dir, temp_dir):
 if __name__ == '__main__':
     main(
         raw_dir=sys.argv[1],
-        temp_dir=sys.argv[2]
+        temp_dir=sys.argv[2],
+        mode=sys.argv[3]
     )

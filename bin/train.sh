@@ -6,7 +6,7 @@ cd ..
 
 rm -rf result
 echo Generating Data
-python weather_oryza/datagen.py raw_data temp
+python weather_oryza/datagen.py raw_data temp train
 
 echo Training Leaf Temp. Model
 python weather_oryza/train.py temp result LEAF

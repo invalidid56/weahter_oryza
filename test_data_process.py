@@ -28,6 +28,7 @@ for file in file_list:
         'GPP__MPTM': 'GPP_DT',
         'GPP': 'GPP_DT',
     })
+
     try:
         df = df[['TIMESTAMP', 'SW_IN', 'TA', 'WS', 'EA', 'GPP_DT']].loc[1:]
         df['SITE'] = file[:3]
@@ -37,6 +38,8 @@ for file in file_list:
         )
         # 2016-06-11 4:30:00
     except KeyError:
+        print(file)
+        print({'TIMESTAMP', 'SW_IN', 'TA', 'WS', 'EA', 'GPP_DT'}-set(df.columns))
         continue
     temp.append(df.reset_index(drop=True))
 
