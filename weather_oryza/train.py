@@ -9,7 +9,7 @@ import time
 import pandas as pd
 from keras.models import Sequential, save_model
 from keras.layers import Dense, LeakyReLU, Dropout, ELU
-from keras.optimizers import adam_v2
+from keras.optimizers import Adam
 from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 
 
@@ -126,8 +126,9 @@ def main(temp_dir, result_dir, target, params='params.txt'):
                 LeakyReLU(alpha=1),
                 Dense(1)
             ])
-        M.compile(optimizer=adam_v2.Adam(learning_rate=LEARNING_RATE), loss='mse', metrics=['mae'])
+        M.compile(optimizer=Adam(learning_rate=LEARNING_RATE), loss='mse', metrics=['mae'])
         return M
+
     #
     # For Each Styles: Day and Night
     #
@@ -148,10 +149,10 @@ def main(temp_dir, result_dir, target, params='params.txt'):
         test_set.to_csv(os.path.join(result_dir, target, data_style, 'data', 'train.csv'), index=False)
 
         size = len(train_set)
-        size_per_fold = int(size/FOLD)-1
+        size_per_fold = int(size / FOLD) - 1
         datasets = []
         for i in range(FOLD):
-            datasets.append(train_set.loc[i * size_per_fold:(i + 1) * size_per_fold])     # Divide for C-V
+            datasets.append(train_set.loc[i * size_per_fold:(i + 1) * size_per_fold])  # Divide for C-V
 
         #
         # Fit Model, Save Model
@@ -193,11 +194,11 @@ def main(temp_dir, result_dir, target, params='params.txt'):
                 exit()
 
             CB = TensorBoard(log_dir=os.path.join(result_dir, target, data_style, 'logs', str(k)))
-            ES = EarlyStopping(monitor='val_loss', patience=15)
+            ES = EarlyStopping(monitor='val_loss', patience=10)
             BEST_PATH = os.path.join(result_dir, target, data_style, 'model', str(k), 'best_model.h5')
             MC = ModelCheckpoint(filepath=BEST_PATH,
-                                                 monitor='val_loss',
-                                                 save_best_only=True)
+                                 monitor='val_loss',
+                                 save_best_only=True)
 
             history = model.fit(train_ds_x, train_ds_y, epochs=EPOCH, batch_size=BATCH,
                                 validation_data=(val_ds_x, val_ds_y), callbacks=[CB, ES, MC])

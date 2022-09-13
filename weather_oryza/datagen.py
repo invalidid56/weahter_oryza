@@ -303,7 +303,7 @@ def main(raw_dir, temp_dir, mode='train'):
         # Preprocessing Data
         # Standardization, Quality Control, Drop Cols
 
-        df['GPP_DT'] = df['GPP_DT'].map(lambda x: set_range(x, 39.99, -0.99))
+        # df['GPP_DT'] = df['GPP_DT'].map(lambda x: set_range(x, 39.99, -0.99))
 
         cols = ['RH', 'VPD', 'WS', 'TE', 'RA', 'CLD', 'TA', 'SW_IN', 'GPP_DT', 'RECO_DT', 'ACC_TA', 'ACC_SW']
         for col in cols:

@@ -1,10 +1,9 @@
-#!/bin/sh
+#!/bin/zsh
 
 BASEDIR=$(pwd)
 
 cd ..
 
-rm -rf result
 echo Processing Test Data
 python weather_oryza/datagen.py raw_data_test temp test_proc
 

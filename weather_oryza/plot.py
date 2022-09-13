@@ -8,7 +8,7 @@ import sys
 import math
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, mean_squared_error
 from keras.models import load_model
 from datagen import minmax_norm, z_norm, accumulate
 
@@ -49,6 +49,7 @@ def main(result_dir, temp_dir, target, params='params.txt'):
 
         test_losses = []
         r2_socres = []
+        nrmse_scores = []
 
         for i in range(FOLD):
             Model = load_model(os.path.join(result_dir, target, data_style, 'model', str(i)))
@@ -59,15 +60,16 @@ def main(result_dir, temp_dir, target, params='params.txt'):
             ys_expect = pd.Series([y[0] for y in ys_expect])
 
             r2_socres.append(r2_score(test_y, ys_expect))
+            nrmse_scores.append(mean_squared_error(test_y, ys_expect)/(max(test_y)-min(test_y))*100)
             test_losses.append(math.sqrt(eval_result[1]))   # MAE
 
-        plt.bar(list(range(FOLD)), test_losses)
+        plt.bar(list(range(FOLD)), nrmse_scores)
         plt.xticks(list(range(FOLD)), list(range(1, FOLD+1)))
 
-        plt.savefig(os.path.join(result_dir, target, data_style, 'plot', 'loss_per_model.png'))
+        plt.savefig(os.path.join(result_dir, target, data_style, 'plot', 'nrmse_per_model.png'))
         plt.clf()
 
-        # CSV: Site, Predict, Real, 1 to 1 plot for a best model
+        # CSV: Site, Predict, Real, DOY 1 to 1 plot for a best model
         best_model = test_losses.index(min(test_losses))
 
         model = load_model(os.path.join(result_dir, target, data_style, 'model', str(best_model)))
@@ -86,6 +88,8 @@ def main(result_dir, temp_dir, target, params='params.txt'):
         plt.savefig(os.path.join(result_dir, target, data_style, 'plot', 'one_to_one.png'))
         plt.clf()
 
+        result_df['DOY'] = test_set['DAY_PER_YEAR']
+
         result_df.to_csv(os.path.join(result_dir, target, data_style, 'plot', 'result.csv'), index=False)
 
         # Print Estimate Report as a File
@@ -93,7 +97,9 @@ def main(result_dir, temp_dir, target, params='params.txt'):
         with open(os.path.join(result_dir, target, data_style, 'estimate_report.txt'), 'w') as report:
             for i, tl in enumerate(test_losses):
                 report.write(
-                    'Model No. {0} in {1} Style-\n Test Loss: {2}\nR2 Score: {3}\n'.format(i, data_style, tl, r2_socres[i])
+                    'Model No. {0} in {1} Style-\n Test Loss: {2}\nR2 Score: {3}\nNRMSE Score: {4}%'.format(
+                        i, data_style, tl, r2_socres[i], nrmse_scores[i]
+                    )
                 )
         #
         # LEAF-GPP-RECO
@@ -114,7 +120,7 @@ def main(result_dir, temp_dir, target, params='params.txt'):
                 result_df = pd.concat([temp_data, ys_expect], axis=1)
                 result_df.to_csv(os.path.join(temp_dir, 'GPP', 'temp_{0}.csv'.format(data_style)), index=False)
 
-        elif target == 'GPP':
+        elif target== 'GPP':
             if os.path.exists(os.path.join(temp_dir, 'RECO')):
                 shutil.rmtree(os.path.join(temp_dir, 'RECO'))
             os.mkdir(os.path.join(temp_dir, 'RECO'))
